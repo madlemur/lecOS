@@ -1,4 +1,5 @@
 run lib_challenge2.
+run lib_warp.
 
 set SHIP:NAME to "Mun Crasher".
 set TARGET to "Mun Lander".
@@ -12,7 +13,7 @@ local target_alt to landing_spot:TERRAINHEIGHT + 615.
 run_node().
 
 
-warpfor(ETA:PERIAPSIS-120).
+warp(ETA:PERIAPSIS-120).
 
 // Reduce the error from run_node. this is from the game not the math.
 lock steering to PROGRADE.

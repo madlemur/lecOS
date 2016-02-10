@@ -1,4 +1,9 @@
-function warp{
+function warpto {
+	PARAMETER stopTime.
+	warp(stopTime - TIME:SECONDS).
+}
+
+function warp {
 
 	PARAMETER duration.
 

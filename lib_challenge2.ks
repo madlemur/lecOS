@@ -12,41 +12,12 @@ function stop_at_nc{
 	local time_2_spot to mod((720 + spot_lng - ship_ref),360) * srf_period/360 .
 	print "time_2_spot : " + round (time_2_spot,2).
 
-	// we travel to target and wait a halve orbit and the offset is the difference of one orbit.
+	// we travel to target and wait a half orbit and the offset is the difference of one orbit.
 	local node_eta to time_2_spot + SHIP:ORBIT:PERIOD/2 + (srf_period - SHIP:ORBIT:PERIOD).
 
 	local target_alt to spot:TERRAINHEIGHT/1000 + 0.615.
 
 	set_altitude(node_eta,target_alt).
-}
-
-//Code by baloan (kos wiki mtkv4)
-function warpfor {
-	declare local parameter dt.
-	local t1 to time:seconds + dt.
-	if dt < 0 {
-		print "T+" + round(missiontime) + " Warning: wait time " + round(dt) + " is in the past.".
-	}
-	local oldwp to 0.
-	local oldwarp to warp.
-	until time:seconds >= t1 {
-		local rt to t1 - time:seconds.       // remaining time
-		local wp to 0.
-		if rt > 5      { set wp to 1. }
-		if rt > 10     { set wp to 2. }
-		if rt > 50     { set wp to 3. }
-		if rt > 100    { set wp to 4. }
-		if rt > 1000   { set wp to 5. }
-		if rt > 10000  { set wp to 6. }
-		if rt > 100000 { set wp to 7. }
-		if wp <> oldwp OR warp <> wp {
-			set warp to wp.
-			wait 0.1.
-			set oldwp to wp.
-			set oldwarp to warp.
-		}
-    wait 0.1.
-	}
 }
 
 // Node runner function. executes the next node. (from kos-doc toturial)
@@ -59,7 +30,7 @@ function run_node{
 	//now we just need to divide deltav:mag by our ship's max acceleration
 	local burn_duration to get_burn_t(nd:deltav:mag).
 	print "Estimated burn duration: " + round(burn_duration) + "s".
-	warpfor (nd:eta - (burn_duration/2 + 60)).
+	warp (nd:eta - (burn_duration/2 + 60)).
 
 	// we want to lock the vector, so we get better accuracy
 	local lock np to lookdirup(nd:deltav, ship:facing:topvector). //points to node, keeping roll the same.
@@ -69,7 +40,7 @@ function run_node{
 	wait until abs(np:pitch - facing:pitch) < 0.1 and abs(np:yaw - facing:yaw) < 0.1.
 
 	//the ship is facing the right direction, let's wait for our burn time
-	warpfor (nd:eta - (burn_duration/2 + 10)).
+	warp (nd:eta - (burn_duration/2 + 10)).
 
 	wait until nd:eta <= (burn_duration/2).
 
