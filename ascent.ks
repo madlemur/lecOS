@@ -2,23 +2,17 @@
 // Kevin Gisi
 // http://youtube.com/gisikw
 
+RUN ONCE lib_staging.
+
 FUNCTION EXECUTE_ASCENT_STEP {
   PARAMETER direction.
   PARAMETER minAlt.
   PARAMETER newAngle.
   PARAMETER newThrust.
 
-  SET prevThrust TO MAXTHRUST.
-
   UNTIL FALSE {
 
-    IF MAXTHRUST < (prevThrust - 10) {
-      SET currentThrottle TO THROTTLE.
-      LOCK THROTTLE TO 0.
-      WAIT 1. STAGE. WAIT 1.
-      LOCK THROTTLE TO currentThrottle.
-      SET prevThrust TO MAXTHRUST.
-    }
+    MNV_BURNOUT(true).
 
     IF ALTITUDE > minAlt {
       LOCK STEERING TO HEADING(direction, newAngle).
@@ -30,18 +24,17 @@ FUNCTION EXECUTE_ASCENT_STEP {
   }
 }
 
+// This requires the values be put into a Queue in the correct order.
 FUNCTION EXECUTE_ASCENT_PROFILE {
   PARAMETER direction.
   PARAMETER profile.
 
-  SET step TO 0.
-  UNTIL step >= profile:length - 1 {
+  UNTIL profile:length < 3 {
     EXECUTE_ASCENT_STEP(
       direction,
-      profile[step],
-      profile[step+1],
-      profile[step+2]
+      profile:pop,
+      profile:pop,
+      profile:pop
     ).
-    SET step TO step + 3.
   }
 }

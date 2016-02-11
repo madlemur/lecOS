@@ -1,24 +1,19 @@
+INSTALLDIR = ~/Kerbal\\\ Space\\\ Program/Ships/Script
+STAGEDIR = packed
+
 files := $(wildcard *.ks)
-packed := $(files:.ks=.ksp)
-
-INSTALLDIR = %HOME%/Kerbal\\\ Space\\\ Program/Ships/Script
-
+packed := $(foreach file, $(files:.ks=.ksp), $(STAGEDIR)/$(file))
 installed := $(foreach file, $(files), $(INSTALLDIR)/$(file))
 
 all : $(packed)
 
-%.ksp : %.ks
-	/bin/sed \
-	-e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' \
-	-e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' \
-	-e 's|^\s*||g' -e 's|\s*$$||g' \
-	-e '/^$$/d' \
-	$< > $@;
+$(STAGEDIR)/%.ksp : %.ks
+	/bin/sed -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\s*||g' -e 's|\s*$$||g' -e '/^$$/d' $< > $@;
 
-$(INSTALLDIR)/%.ks : %.ksp
+$(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
 	cp $< $@;
 
 install : $(installed)
 
 clean :
-	rm *.ksp
+	rm $(packed)
