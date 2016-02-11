@@ -20,66 +20,6 @@ function stop_at_nc{
 	set_altitude(node_eta,target_alt).
 }
 
-// Node runner function. executes the next node. (from kos-doc toturial)
-function run_node{
-	SAS off.
-	local nd to NEXTNODE.
-	//print out node's basic parameters - ETA and deltaV
-	print "Node in: " + round(nd:eta) + ", DeltaV: " + round(nd:deltav:mag).
-
-	//now we just need to divide deltav:mag by our ship's max acceleration
-	local burn_duration to get_burn_t(nd:deltav:mag).
-	print "Estimated burn duration: " + round(burn_duration) + "s".
-	warp (nd:eta - (burn_duration/2 + 60)).
-
-	// we want to lock the vector, so we get better accuracy
-	local lock np to lookdirup(nd:deltav, ship:facing:topvector). //points to node, keeping roll the same.
-	lock steering to np.
-	print "waiting for the ship to turn".
-	//now we need to wait until the burn vector and ship's facing are aligned
-	wait until abs(np:pitch - facing:pitch) < 0.1 and abs(np:yaw - facing:yaw) < 0.1.
-
-	//the ship is facing the right direction, let's wait for our burn time
-	warp (nd:eta - (burn_duration/2 + 10)).
-
-	wait until nd:eta <= (burn_duration/2).
-
-	local tset to 0.
-	lock throttle to tset.
-
-	local done to False.
-	//initial deltav
-	local dv0 to nd:deltav.
-	local max_acc is 0.
-
-	print "using time based burn.".
-	lock max_acc to ship:maxthrust/ship:mass.
-	lock tset to min(nd:deltav:mag/max_acc, 1).
-	until done {
-		if (nd:deltav:MAG < 1) {
-			local my_dir to lookdirup(nd:deltav, ship:facing:topvector).
-			lock steering to my_dir.
-
-			wait until nd:deltav:MAG < 0.2.
-			set my_dir to lookdirup(nd:deltav, ship:facing:topvector).
-			set tset to min(nd:deltav:mag/max_acc, 1).
-			print "one second left burning".
-			wait 0.93.
-			set tset to 0.
-			set done to true.
-		}
-
-	}
-
-	//we no longer need the maneuver node
-	remove nd.
-	print "Runnode Finished".
-
-	//set throttle to 0 just in case.
-	set SHIP:CONTROL:PILOTMAINTHROTTLE to 0.
-	unlock throttle.
-}
-
 // changes the altitude of the orbits opposite
 // only usable at PE, AP or circular orbits.
 function set_altitude {
@@ -94,46 +34,4 @@ function set_altitude {
 	local node_dv to v_target - v_burn:ORBIT:MAG.
 	local my_node to NODE(time:seconds + node_eta,0,0,node_dv).
 	add my_node.
-}
-
-
-
-// Takes the dV and returns the expected burn time without staging.
-function get_burn_t {
-	declare local parameter dV.
-
-	local e is CONSTANT:E.
-	local eng_stats is get_engine_stats().
-	local mass_rate is eng_stats[2].
-	local v_e is eng_stats[3].
-
-	// Rocket equation solved for t.
-	local burn_t is  SHIP:MASS*(1 - e^(-dV/v_e))/mass_rate.
-
-	return burn_t.
-}
-
-
-// returns commulative thrust, mean isp, the mass change and the mean_exit_velocity of all engines of this stage.
-function get_engine_stats {
-
-	local g is 9.82.	// Engines use this.
-
-	local all_thrust is 0.
-	local old_isp_devider is 0.
-	local all_engines is LIST().
-
-  	list ENGINES in all_engines.
-	for eng in all_engines {
-		if eng:IGNITION AND NOT eng:FLAMEOUT {
-			set all_thrust to (all_thrust + eng:AVAILABLETHRUST).
-			set old_isp_devider to (old_isp_devider + (eng:AVAILABLETHRUST / eng:VISP)).
-		}
-	}
-
-	local mean_isp is (all_thrust / old_isp_devider).
-	local ch_rate is all_thrust/(g*mean_isp).
-	local exit_velocity is all_thrust/ch_rate.
-
-	return list(all_thrust , mean_isp , ch_rate , exit_velocity).
 }
