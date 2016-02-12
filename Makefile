@@ -1,4 +1,4 @@
-INSTALLDIR = ~/Kerbal\\\ Space\\\ Program/Ships/Script
+INSTALLDIR = ~/Desktop/Kerbal\\\ Space\\\ Program/Ships/Script
 STAGEDIR = packed
 
 files := $(wildcard *.ks)
