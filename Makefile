@@ -7,13 +7,13 @@ installed := $(foreach file, $(files), $(INSTALLDIR)/$(file))
 
 all : $(packed)
 
-$(STAGEDIR)/%.ksp : %.ks
-	/bin/sed -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\s*||g' -e 's|\s*$$||g' -e '/^$$/d' $< > $@;
-
-$(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
-	cp $< $@;
-
 install : $(installed)
 
 clean :
-	rm $(packed)
+	rm $(packed);
+
+$(STAGEDIR)/%.ksp : %.ks
+	/bin/sed -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' $< > $@;
+
+$(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
+	cp $< $@;
