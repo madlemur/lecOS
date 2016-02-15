@@ -1,6 +1,3 @@
-clearscreen.
-clearvecdraws().
-
 global ui_announce is 0.
 global ui_announceMsg is "".
 
@@ -44,9 +41,8 @@ function uiWarning {
 
 function uiError {
   parameter prefix.
-  parameter msg.
+  parameter msg.NOTIFY("Updating with " + u).
 
-  uiConsole(prefix, msg).
   hudtext(msg, 10, 4, 36, RED, false).
 }
 

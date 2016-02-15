@@ -105,9 +105,9 @@ FUNCTION dok_kill_relative_velocity {
 }
 
 FUNCTION dok_dock {
-  PARAMETER dockingPortTag, targetName, targetPortTag.
+  PARAMETER dockingPortTag, targetPortTag.
   SET dockingPort TO dok_get_port(dockingPortTag).
-  SET targetVessel TO VESSEL(targetName).
+  SET targetVessel TO TARGET.
   dockingPort:controlfrom.
 
   RCS ON.

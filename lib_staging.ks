@@ -1,7 +1,7 @@
 @lazyglobal off.
 
 function checkStages {
-
+  local myEngines is list().
   // I use long variables to avoid reference to others
   list engines in myEngines.
 
@@ -27,7 +27,7 @@ function checkStages {
 
       if ( foundDecoupler ) {
         //print "stage flameout engines!".
-        stage.
+        // stage.
         return 1.
       }
     }
@@ -36,7 +36,7 @@ function checkStages {
 
   IF (SHIP:LIQUIDFUEL > 0) AND (STAGE:LIQUIDFUEL < 0.01) AND (STAGE:SOLIDFUEL < 0.01) {
     //PRINT "ENGINE START REQUIRED".
-    STAGE.
+    // STAGE.
     return 1.
   }
 

@@ -1,20 +1,21 @@
-run once lib_challenge2.
-run once lib_warp.
-run once maneuver.
 
-set SHIP:NAME to "Mun Crasher".
-set TARGET to "Mun Lander".
-stage.
+// set SHIP:NAME to "Mun Crasher".
+// set TARGET to "Mun Lander".
+// stage.
+run once lib_challenge2.
+run once maneuver.
+run once lib_ui.
+
 wait 1.
 
 
 stop_at_nc(TARGET:GEOPOSITION).
 local landing_spot to TARGET:GEOPOSITION.
-local target_alt to landing_spot:TERRAINHEIGHT + 615.
+local target_alt to landing_spot:TERRAINHEIGHT + 1000.
 MNV_EXEC_NODE(true).
 
 
-warp(ETA:PERIAPSIS-120).
+//warp(ETA:PERIAPSIS-120).
 
 // Reduce the error from run_node. this is from the game not the math.
 lock steering to PROGRADE.
