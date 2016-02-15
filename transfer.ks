@@ -32,6 +32,18 @@ until obt:transition <> "encounter" {
 }
 
 // TODO - deal with collision (radial burn)
+local newAlt is target:radius * 0.5.
+if target:atm:height > newAlt {
+  set newAlt to target:atm:height * 1.25.
+}
+if periapsis < newAlt {
+  local radialDir is ship:up.
+  lock steering to radialDir.
+  wait until vang(radialDir:forevector, heading:forevector) < 3.
+  lock throttle to MAX(0, MIN(1, (newAlt - periapsis) / 1000)).
+  wait until periapsis >= newAlt.
+  lock throttle to 0.
+}
 
 uiBanner(_p, "Transfer braking burn").
 // Circularize
