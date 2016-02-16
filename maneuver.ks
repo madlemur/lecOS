@@ -195,7 +195,7 @@ function MNV_CIRC {
 	local th to 0.
 	lock throttle to th.
 	local dV is ship:facing:vector:normalized. //temporary
-	lock steering to LookUpDir(dV, facing:topvector).
+	lock steering to LookDirUp(dV, facing:topvector).
 	ag1 off. //ag1 to abort
 
 	local timeout is time:seconds + 9000.
