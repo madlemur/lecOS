@@ -13,7 +13,7 @@ clean :
 	rm $(packed);
 
 $(STAGEDIR)/%.ksp : %.ks
-	/bin/sed -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\(\([^"]*\)\("[^"]*"[^"]*\)*\)\s*//.*$$|\1|g' -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' $< > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
 
 $(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
 	cp $< $@;
