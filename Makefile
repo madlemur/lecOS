@@ -1,4 +1,4 @@
-INSTALLDIR = ~/Desktop/Kerbal\\\ Space\\\ Program/Ships/Script
+INSTALLDIR = /cygdrive/c/Program\ Files\ (x86)/Steam/steamapps/common/Kerbal\ Space\ Program/Ships/Script
 STAGEDIR = packed
 
 files := $(wildcard *.ks)
@@ -16,4 +16,4 @@ $(STAGEDIR)/%.ksp : %.ks
 	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
 
 $(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
-	cp $< $@;
+	cp $< '$@';
