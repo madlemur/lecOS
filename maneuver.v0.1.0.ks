@@ -24,9 +24,7 @@
     lock throttle to min(mnv_time(n:burnvector:mag), 1).
 
     until vdot(n:burnvector, v) < 0 {
-      if ship:maxthrust < 0.1 stage.
       wait 0.1.
-      if ship:maxthrust < 0.1 { break. }
     }
     lock throttle to 0.
     unlock steering.
@@ -44,6 +42,11 @@
     local engine_count is 0.
     local thrust is 0.
     local isp is 0.
+
+    until ship:maxthrust > 0.1 {
+      stage.
+      wait 1.
+    }
 
     list engines in all_engines.
     for en in all_engines if en:ignition and not en:flameout {

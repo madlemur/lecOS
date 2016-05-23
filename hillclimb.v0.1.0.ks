@@ -24,7 +24,7 @@
   function best_neighbor {
     parameter data, fitness_fn, step_size.
     local best_fitness is -INFINITY.
-    local best is 0.
+    local best is data:copy.
     for neighbor in neighbors(data, step_size) {
       local fitness is fitness_fn(neighbor).
       if fitness > best_fitness {

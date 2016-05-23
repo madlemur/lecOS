@@ -32,14 +32,14 @@ function download {
 }
 
 // check if we have new instructions stored in event of comm loss
-if core:volume:exists("backup.op.ks") and not addons:rt:haskscconnection(ship) {
+if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
   core:volume:delete("operations.ks").
   rename "backup.op.ks" to "operations.ks".
   print "KSC connection lost. Stored operations file loaded".
 } else {
 
   // check for connection to KSC for archive volume access if no instructions stored
-  if not addons:rt:haskscconnection(ship) {
+  if not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
     print "waiting for KSC link...".
     wait until addons:rt:haskscconnection(ship).
   }
