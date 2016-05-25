@@ -1,10 +1,10 @@
 
 {
   local TARGET_ALTITUDE is 100000.
-  local FINAL_ALTITUDE is 750000.
-  local CONSTELLATION_SIZE is 4.
+  local FINAL_ALTITUDE is 7500000.
+  local CONSTELLATION_SIZE is 1.
 
-  global comsat_mission is lex(
+  global long_comsat_mission is lex(
     "sequence", list(
       "preflight", preflight@,
       "launch", launch@,
@@ -55,7 +55,7 @@
 
     set ship:control:pilotmainthrottle to 0.
     lock throttle to 1.
-    lock steering to heading(90, 90).
+    lock steering to heading(0, 90).
     wait 5.
     mission["next"]().
   }
@@ -67,7 +67,7 @@
     lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
     lock target_pitch to -90 * pct_alt^0.5 + 90.
     lock throttle to 1. // Honestly, just lock throttle to 1
-    lock steering to heading(90, target_pitch).
+    lock steering to heading(0, target_pitch).
     mission["next"]().
   }
 

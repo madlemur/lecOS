@@ -1,7 +1,16 @@
 clearscreen.
 set deleteOnFinish to false.
 set backupOps to false.
-log "" to ship:name + ".log.np2".
+set sName to ship:name.
+set shipName to "".
+from {local i is 0.} until i = sName:length step {set i to i + 1.} do {
+  if(sName[i] = " ") {
+    set shipName to shipName + "_".
+  } else {
+    set shipName to shipName + sName[i].
+  }
+}
+log "" to shipName + ".log.np2".
 
 // checks if the requested file exists on the KSC disk
 // checks if there is enough room to copy a file from the archive to the vessel
@@ -15,9 +24,9 @@ function download {
   else set localFileSize to 0.
   set archiveFileSize to archive:open(archiveFile):size.
   if core:volume:freespace - archiveFileSize + localFileSize < 0 {
-    if core:volume:freespace - archiveFileSize + localFileSize + core:volume:open(ship:name + ".log.np2"):size > 0 {
-      copy ship:name + ".log.backup.np2" to 0.
-      core:volume:delete(ship:name + ".log.np2").
+    if core:volume:freespace - archiveFileSize + localFileSize + core:volume:open(shipName + ".log.np2"):size > 0 {
+      copy shipName + ".log.backup.np2" to 0.
+      core:volume:delete(shipName + ".log.np2").
       print "deleting log to free up space".
     } else {
       print "unable to copy file " + archiveFile + ". Not enough disk space".
@@ -49,7 +58,7 @@ if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) 
 
   // check for a new bootscript
   // destroy the log if needed to make room, but only if it'll make room
-  if download(ship:name + ".boot.ks", "boot.ks") {
+  if download(shipName + ".boot.ks", "boot.ks") {
     print "new boot file received".
     wait 2.
     reboot.
@@ -57,7 +66,7 @@ if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) 
 
   // check for new operations
   // destroy the log if needed to make room, but only if it'll make room
-  if download(ship:name + ".op.ks", "operations.ks") print "new operations file received".
+  if download(shipName + ".op.ks", "operations.ks") print "new operations file received".
 }
 
 
@@ -70,7 +79,7 @@ set ship:control:pilotmainthrottle to 0.
 // won't output to archive copy until first ouput() call
 set logList to list().
 set logStr to "[" + time:calendar + "] boot up".
-log logStr to ship:name + ".log.np2".
+log logStr to shipName + ".log.np2".
 logList:add(logStr).
 
 // for logging data, with various considerations
@@ -85,27 +94,27 @@ function output {
   // otherwise delete the log to start anew
   set logStr to "[" + time:hour + ":" + time:minute + ":" + floor(time:second) + "] " + text.
   if core:volume:freespace > logStr:length {
-    log logStr to ship:name + ".log.np2".
+    log logStr to shipName + ".log.np2".
   } else {
-    core:volume:delete(ship:name + ".log.np2").
-    log "[" + time:calendar + "] new file" to ship:name + ".log.np2".
-    log logStr to ship:name + ".log.np2".
+    core:volume:delete(shipName + ".log.np2").
+    log "[" + time:calendar + "] new file" to shipName + ".log.np2".
+    log logStr to shipName + ".log.np2".
   }
 
   // store a copy on KSC hard drives if we are in contact
   // otherwise save and copy over as soon as we are back in contact
   if addons:rt:haskscconnection(ship) {
-    if not archive:exists(ship:name + ".log.np2") archive:create(ship:name + ".log.np2").
+    if not archive:exists(shipName + ".log.np2") archive:create(shipName + ".log.np2").
     if logList:length {
-      for entry in logList archive:open(ship:name + ".log.np2"):writeln(entry).
+      for entry in logList archive:open(shipName + ".log.np2"):writeln(entry).
       set logList to list().
     }
-    archive:open(ship:name + ".log.np2"):writeln(logStr).
+    archive:open(shipName + ".log.np2"):writeln(logStr).
   } else {
     if core:volume:freespace > logStr:length {
       logList:add(logStr).
     } else {
-      core:volume:delete(ship:name + ".log.np2").
+      core:volume:delete(shipName + ".log.np2").
       logList:add("[" + time:calendar + "] new file").
       logList:add(logStr).
     }
@@ -114,8 +123,8 @@ function output {
 
 // store new instructions while a current operations program is running
 // if we lose connection before a new script is uploaded, this will run
-// running ops should check backupOps flag and call download(ship:name + ".bop.ks.", "backup.op.ks").
-when addons:rt:haskscconnection(ship) and archive:exists(ship:name + ".bop.ks.") then {
+// running ops should check backupOps flag and call download(shipName + ".bop.ks.", "backup.op.ks").
+when addons:rt:haskscconnection(ship) and archive:exists(shipName + ".bop.ks.") then {
   set backupOps to true.
   if addons:rt:haskscconnection(ship) preserve.
 }
@@ -123,7 +132,7 @@ when addons:rt:haskscconnection(ship) and archive:exists(ship:name + ".bop.ks.")
 // run operations?
 if not core:volume:exists("operations.ks") and addons:rt:haskscconnection(ship) {
   print "waiting to receive operations...".
-  until download(ship:name + ".op.ks.", "operations.ks") {
+  until download(shipName + ".op.ks.", "operations.ks") {
     if not addons:rt:haskscconnection(ship) {
       if not core:volume:exists("backup.op.ks") {
         print "KSC connection lost, awaiting connection...".
