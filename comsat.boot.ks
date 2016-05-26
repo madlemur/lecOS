@@ -1,4 +1,6 @@
-// Herald Boot Script
+// ComSat boot script
+// Ken Cummins (madlemur)
+//   based on work by
 // Kevin Gisi
 // http://youtube.com/gisikw
 
