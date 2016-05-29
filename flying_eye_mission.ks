@@ -1,9 +1,9 @@
 
 {
   local TARGET_ALTITUDE is 100000.
-  local FINAL_ALTITUDE is 250000.
+  local FINAL_ALTITUDE is 1500000.
 
-  global kerbinview_mission is lex(
+  global flying_eye_mission is lex(
     "sequence", list(
       "preflight", preflight@,
       "launch", launch@,
@@ -25,7 +25,7 @@
 
     set ship:control:pilotmainthrottle to 0.
     lock throttle to 1.
-    lock steering to heading(90, 90).
+    lock steering to heading(65, 90).
     wait 5.
     mission["next"]().
   }
@@ -37,7 +37,7 @@
     lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
     lock target_pitch to -90 * pct_alt^0.5 + 90.
     lock throttle to 1. // Honestly, just lock throttle to 1
-    lock steering to heading(0, target_pitch).
+    lock steering to heading(65, target_pitch).
     mission["next"]().
   }
 
@@ -77,10 +77,11 @@
     parameter mission.
 
     toggle AG4. // Set for the fairings
-    wait 1.0.
-    local p to ship:partstitled("CommTech EXP-VR-2T")[0].
+    wait 0.5.
+    local p to ship:partstitled("Communotron DTS-M1")[0].
     local m to p:getmodule("ModuleRTAntenna").
     m:doevent("activate").
+    m:setfield("target", "Kerbin").
     panels on.
     mission["next"]().
   }
@@ -88,7 +89,11 @@
   function raise_apoapsis {
     parameter mission.
 
-    local apo_fitness is apoapsis_fitness@:bind(time:seconds + eta:periapsis).
+    // Get a ballpark figure for dV needed to reach apoapsis
+    // We are depending on a nearly circular orbit, but we're basing our guess
+    // on a point between apoapsis and periapsis to get the midpoint of any
+    // eccentricity.
+    local apo_fitness is apoapsis_fitness@:bind(time:seconds + eta:apoapsis).
     local dV is list(0).
     set dV to hillclimb["seek"](dV, apo_fitness@, 100).
     set dV to hillclimb["seek"](dV, apo_fitness@, 10).
@@ -96,7 +101,7 @@
     set dV to hillclimb["seek"](dV, apo_fitness@, 0.1).
     set dV to hillclimb["seek"](dV, apo_fitness@, 0.01).
 
-    add node(time:seconds + eta:periapsis, 0, 0, dV[0]). wait 0.1.
+    add node(time:seconds + eta:apoapsis, 0, 0, dV[0]). wait 0.1.
     mission["next"]().
   }
 
@@ -113,11 +118,6 @@
     // Point at Kerbol (assuming your solar panels are placed for that orientation)
     // Change this to optimize power generation for your design.
     lock steering to body("Kerbol"):position - ship:position.
-    local p is ship:partstitled("SCAN RADAR Altimetry Sensor")[0].
-    local m is p:getmodule("SCANSat").
-    m:doevent("start radar scan").
-
-    mission["next"]().
   }
 
   function available_twr {
