@@ -4,6 +4,7 @@
 
 {
   global maneuver is lex(
+    "version", "0.1.0",
     "exec", mnv_exec@
   ).
 

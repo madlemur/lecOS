@@ -13,8 +13,18 @@
     "steer", steer@,
     "approach", approach@,
     "cancel", cancel@,
-    "await_nearest", await_nearest@
+    "await_nearest", await_nearest@,
+    "rendezvous", rendezvous@
   ).
+
+  function rendezvous {
+    parameter tgt.
+    lock dist to (tgt:position - ship:position):mag.
+    while dist > 100 {
+      approach(tgt, dist/10).
+    }
+    cancel(tgt).
+  }
 
   FUNCTION steer {
     PARAMETER vector.

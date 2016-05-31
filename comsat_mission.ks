@@ -87,16 +87,7 @@
   function circularize {
     parameter mission.
 
-    local circ_fitness is circular_fitness@:bind(time:seconds + eta:apoapsis).
-    // Find good circularization dV
-    local dV is list(0).
-    set dV to hillclimb["seek"](dV, circ_fitness@, 100).
-    set dV to hillclimb["seek"](dV, circ_fitness@, 10).
-    set dV to hillclimb["seek"](dV, circ_fitness@, 1).
-    set dV to hillclimb["seek"](dV, circ_fitness@, 0.2).
-
-    // Execute maneuver
-    add node(time:seconds + eta:apoapsis, 0, 0, dV[0]). wait 0.1.
+    add navigate["change_peri"](ship:orbit:apoapsis). wait 0.1.
     mission["next"]().
   }
 
@@ -105,10 +96,10 @@
 
     toggle AG4. // Set for the fairings
     wait 0.5.
-    local p to ship:partstitled("Communotron DTS-M1")[0].
-    local m to p:getmodule("ModuleRTAntenna").
-    m:doevent("activate").
-    m:setfield("target", "mission-control").
+    //local p to ship:partstitled("Communotron DTS-M1")[0].
+    //local m to p:getmodule("ModuleRTAntenna").
+    //m:doevent("activate").
+    //m:setfield("target", "mission-control").
     set p to ship:partstitled("Communotron 16")[0].
     set m to p:getmodule("ModuleRTAntenna").
     m:doevent("activate").
@@ -119,36 +110,18 @@
   function raise_apoapsis {
     parameter mission.
 
-    // Get a ballpark figure for dV needed to reach apoapsis
-    // We are depending on a nearly circular orbit, but we're basing our guess
-    // on a point between apoapsis and periapsis to get the midpoint of any
-    // eccentricity.
-    local apo_fitness is apoapsis_fitness@:bind(time:seconds + MIN(eta:apoapsis, eta:periapsis) + ship:orbit:period/4).
-    local dV is list(0).
-    set dV to hillclimb["seek"](dV, apo_fitness@, 100).
-    set dV to hillclimb["seek"](dV, apo_fitness@, 10).
-    set dV to hillclimb["seek"](dV, apo_fitness@, 1).
-
-    // Begin looking on the "far side" of the orbit, so we have room to properly
-    // hillclimb regardless of where the solution is. (Assuming a solution is
-    // within the current orbit somewhere)
-    local mT is list(time:seconds + ship:orbit:period/2).
-    if mission["control"] <> ship:name {
-      local time_slice = ship:orbit:period/10.
-      local time_fitness is cluster_fitness@:bind(mission["control"], dV[0]).
-      until time_slice < 1 do {
-        set mT to hillclimb["seek"](mT, time_fitness@, time_slice).
-        set time_slice to time_slice / 10.
+    if mission:haskey("control") AND mission["control"] <> ship:name {
+      local nd is navigate["hohmann"](360/CONSTELLATION_SIZE, vessel(mission["control"])).
+      until nd:eta > 0 {
+        print "Waiting for a transfer window.".
+        warpto(time:seconds + navigate["synodic_period"]()).
+        set nd to navigate["hohmann"](360/CONSTELLATION_SIZE, vessel(mission["control"])).
       }
+      add nd.
+    } else {
+      add navigate["change_apo"](FINAL_ALTITUDE).
     }
-
-    // Fine tune the dV calculation (hoping it doesn't throw off the cluster timing
-    // too badly)
-    set apo_fitness to apoapsis_fitness@:bind(mT[0]).
-    set dV to hillclimb["seek"](dV, apo_fitness@, 0.1).
-    set dV to hillclimb["seek"](dV, apo_fitness@, 0.01).
-
-    add node(mT[0], 0, 0, dV[0]). wait 0.1.
+    wait 0.1.
     mission["next"]().
   }
 
@@ -162,57 +135,11 @@
 
   function idle {
     parameter mission.
-    // Point at Kerbol (assuming your solar panels are placed for that orientation)
-    // Change this to optimize power generation for your design.
-    lock steering to body("Kerbol"):position - ship:position.
   }
 
   function available_twr {
     local g is body:mu / (ship:altitude + body:radius)^2.
     return ship:maxthrust / g / ship:mass.
-  }
-
-  function apoapsis_fitness {
-    parameter mT, data.
-    local maneuver is node(mT, 0, 0, data[0]).
-    local fitness is 0.
-    add maneuver. wait 0.01.
-    set fitness to -(ABS(FINAL_ALTITUDE - maneuver:orbit:apoapsis)).
-    remove_any_nodes().
-    return fitness.
-  }
-
-  function cluster_fitness {
-    parameter control, dV, data.
-    local INFINITY is 2^64 - 1.
-    // Give ourselves at least 10 seconds to complete hillclimb and orientation
-    if data[0] < (time:seconds + 10) {
-      return -INFINITY.
-    }
-    local maneuver is node(data[0], 0, 0, dV).
-    local fitness is 0.
-    add maneuver. wait 0.01.
-    // apoapsis will be on the far side of the orbit
-    local intercept is data[0] + (maneuver:orbit:period / 2).
-    // Determine where the ships will be
-    local shipPosV is (positionat(ship, intercept) - ship:body:position).
-    local controlPosV is (positionat(vessel(control), intercept) - ship:body:position).
-    // Base the fitness on how close the angle between the ships will match the
-    // angle between the constellation points. (90 for 4 sats, 120 for 3 sats, etc.)
-    set fitness to -ABS(360/CONSTELLATION_SIZE - (vang(shipPosV, controlPosV) * vcrs(shipPosV, controlPosV):normalized:y)).
-
-    remove_any_nodes().
-    return fitness.
-  }
-
-  function circular_fitness {
-    parameter mT, data.
-    local maneuver is node(mT, 0, 0, data[0]).
-    local fitness is 0.
-    add maneuver. wait 0.01.
-    set fitness to -maneuver:orbit:eccentricity.
-    remove_any_nodes().
-    return fitness.
   }
 
   function remove_any_nodes {
