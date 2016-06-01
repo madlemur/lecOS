@@ -19,10 +19,14 @@
 
   function rendezvous {
     parameter tgt.
-    lock dist to (tgt:position - ship:position):mag.
-    while dist > 100 {
-      approach(tgt, dist/10).
-    }
+    approach(tgt, 10).
+    await_nearest(tgt, 200).
+    cancel(tgt).
+    approach(tgt, 5).
+    await_nearest(tgt, 80).
+    cancel(tgt).
+    approach(tgt, 1).
+    await_nearest(tgt, 10).
     cancel(tgt).
   }
 

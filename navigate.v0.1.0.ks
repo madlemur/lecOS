@@ -238,7 +238,7 @@
 		local sn is vdot(dv, n).
 		local sp is vdot(dv, p).
 
-		local dt is dv:mag / accel.
+		local dt is maneuver["burn_time"](dv:mag).
 
 		// Time the burn so that we end thrusting just as we reach the point of closest
 		// approach. Assumes the burn program will perform half of its burn before

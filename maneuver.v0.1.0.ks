@@ -5,7 +5,8 @@
 {
   global maneuver is lex(
     "version", "0.1.0",
-    "exec", mnv_exec@
+    "exec", mnv_exec@,
+    "burn_time", mnv_time@
   ).
 
   function mnv_exec {

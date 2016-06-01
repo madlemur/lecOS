@@ -16,6 +16,7 @@
   run mission_runner.v0.1.0.ks.
   run navigate.v0.1.0.ks.
   run maneuver.v0.1.0.ks.
+  run rendezvous.v0.1.0.ks.
   run rescue_mission.ks.
 
   run_mission(rescue_mission["sequence"], rescue_mission["events"]).
