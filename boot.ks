@@ -1,1 +1,158 @@
-{ local MANEUVER_LEAD_TIME is 600. local SLOPE_THRESHHOLD is 1. local INFINITY is 2^64. global transfer is lex( "version", "0.2.1", "seek", seek@ ). function seek { parameter target_body, target_periapsis. local attempt is 1. local data is starting_data(attempt). until 0 { set data to hillclimb["seek"](data, transfer_fit(target_body), 20). if transfers_to(nextnode, target_body) { break. } set attempt to attempt + 1. set data to starting_data(attempt). } set data to hillclimb["seek"](data, inclination_fit(target_body), 10). set data to hillclimb["seek"](data, inclination_fit(target_body), 1). set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 10). set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 1). remove_any_nodes(). return make_node(data). } function transfer_fit { parameter target_body. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if transfers_to(maneuver, target_body) return 1. local fitness is -closest_approach( target_body, time:seconds + maneuver:eta, time:seconds + maneuver:eta + maneuver:orbit:period ). return fitness. } return fitness_fn@. } function inclination_fit { parameter target_body. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if not transfers_to(maneuver, target_body) return -INFINITY. return -abs(maneuver:orbit:nextpatch:inclination). } return fitness_fn@. } function periapsis_fit { parameter target_body, target_periapsis. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if not transfers_to(maneuver, target_body) return -INFINITY. return -abs(maneuver:orbit:nextpatch:periapsis - target_periapsis). } return fitness_fn@. } function closest_approach { parameter target_body, start_time, end_time. local start_slope is slope_at(target_body, start_time). local end_slope is slope_at(target_body, end_time). local middle_time is (start_time + end_time) / 2. local middle_slope is slope_at(target_body, middle_time). until (end_time - start_time < 0.1) or middle_slope < 0.1 { if (middle_slope * start_slope) > 0 set start_time to middle_time. else set end_time to middle_time. set middle_time to (start_time + end_time) / 2. set middle_slope to slope_at(target_body, middle_time). } return separation_at(target_body, middle_time). } function slope_at { parameter target_body, at_time. return ( separation_at(target_body, at_time + 1) - separation_at(target_body, at_time - 1) ) / 2. } function separation_at { parameter target_body, at_time. return (positionat(ship, at_time) - positionat(target_body, at_time)):mag. } function transfers_to { parameter maneuver, target_body. return ( maneuver:orbit:hasnextpatch and maneuver:orbit:nextpatch:body = target_body ). } function starting_data { parameter attempt. return list(time:seconds + (MANEUVER_LEAD_TIME * attempt), 0, 0, 0). } function make_node { parameter maneuver. return node(maneuver[0], maneuver[1], maneuver[2], maneuver[3]). } function remove_any_nodes { until not hasnode { remove nextnode. wait 0.01. } } } 
+clearscreen.
+set deleteOnFinish to false.
+set backupOps to false.
+set tempName to ship:name.
+set sName to "".
+from {local i is 0.} until i = tempName:length step {set i to i + 1.} do {
+  if(tempName[i] = " ") {
+    set sName to sName + "_".
+  } else {
+    set sName to sName + tempName[i].
+  }
+  wait 0.001.
+}
+log "" to sName + ".log.np2".
+
+// checks if the requested file exists on the KSC disk
+// checks if there is enough room to copy a file from the archive to the vessel
+// will remove the log file if the space it frees will allow the transfer
+// also accounts for wether the transfer file has a local copy that will be replaced
+function download {
+  parameter archiveFile, localFile.
+  if not addons:rt:haskscconnection(ship) return false.
+  if not archive:exists(archiveFile) return false.
+  if core:volume:exists(localFile) set localFileSize to core:volume:open(localFile):size.
+  else set localFileSize to 0.
+  set archiveFileSize to archive:open(archiveFile):size.
+  if core:volume:freespace - archiveFileSize + localFileSize < 0 {
+    if core:volume:freespace - archiveFileSize + localFileSize + core:volume:open(sName + ".log.np2"):size > 0 {
+      copy sName + ".log.backup.np2" to 0.
+      core:volume:delete(sName + ".log.np2").
+      print "deleting log to free up space".
+    } else {
+      print "unable to copy file " + archiveFile + ". Not enough disk space".
+      return false.
+    }
+  }
+  copy archiveFile from 0.
+  archive:delete(archiveFile).
+  if localFileSize core:volume:delete(localFile).
+  rename archiveFile to localFile.
+  return true.
+}
+
+// check if we have new instructions stored in event of comm loss
+if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+  core:volume:delete("operations.ks").
+  rename "backup.op.ks" to "operations.ks".
+  print "KSC connection lost. Stored operations file loaded".
+} else {
+
+  // check for connection to KSC for archive volume access if no instructions stored
+  if not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+    print "waiting for KSC link...".
+    wait until addons:rt:haskscconnection(ship).
+  }
+
+  print "KSC link established, fetching operations...".
+  wait addons:rt:kscdelay(ship).
+
+  // check for a new bootscript
+  // destroy the log if needed to make room, but only if it'll make room
+  if download(sName + ".boot.ks", "boot.ks") {
+    print "new boot file received".
+    wait 2.
+    reboot.
+  }
+
+  // check for new operations
+  // destroy the log if needed to make room, but only if it'll make room
+  if download(sName + ".op.ks", "operations.ks") print "new operations file received".
+}
+
+
+// ///////////////////
+// do any boot stuff
+// ///////////////////
+set ship:control:pilotmainthrottle to 0.
+
+// date stamp the log
+// won't output to archive copy until first ouput() call
+set logList to list().
+set logStr to "[" + time:calendar + "] boot up".
+log logStr to sName + ".log.np2".
+logList:add(logStr).
+
+// for logging data, with various considerations
+function output {
+  parameter text.
+  parameter toConsole is false.
+
+  // print to console if requested
+  if toConsole print text.
+
+  // log the new data to the file if it will fit
+  // otherwise delete the log to start anew
+  set logStr to "[" + time:hour + ":" + time:minute + ":" + floor(time:second) + "] " + text.
+  if core:volume:freespace > logStr:length {
+    log logStr to sName + ".log.np2".
+  } else {
+    core:volume:delete(sName + ".log.np2").
+    log "[" + time:calendar + "] new file" to sName + ".log.np2".
+    log logStr to sName + ".log.np2".
+  }
+
+  // store a copy on KSC hard drives if we are in contact
+  // otherwise save and copy over as soon as we are back in contact
+  if addons:rt:haskscconnection(ship) {
+    if not archive:exists(sName + ".log.np2") archive:create(sName + ".log.np2").
+    if logList:length {
+      for entry in logList archive:open(sName + ".log.np2"):writeln(entry).
+      set logList to list().
+    }
+    archive:open(sName + ".log.np2"):writeln(logStr).
+  } else {
+    if core:volume:freespace > logStr:length {
+      logList:add(logStr).
+    } else {
+      core:volume:delete(sName + ".log.np2").
+      logList:add("[" + time:calendar + "] new file").
+      logList:add(logStr).
+    }
+  }
+}
+
+// store new instructions while a current operations program is running
+// if we lose connection before a new script is uploaded, this will run
+// running ops should check backupOps flag and call download(shipName + ".bop.ks.", "backup.op.ks").
+when addons:rt:haskscconnection(ship) and archive:exists(sName + ".bop.ks.") then {
+  set backupOps to true.
+  if addons:rt:haskscconnection(ship) preserve.
+}
+
+// run operations?
+if not core:volume:exists("operations.ks") and addons:rt:haskscconnection(ship) {
+  print "waiting to receive operations...".
+  until download(sName + ".op.ks.", "operations.ks") {
+    if not addons:rt:haskscconnection(ship) {
+      if not core:volume:exists("backup.op.ks") {
+        print "KSC connection lost, awaiting connection...".
+        wait until addons:rt:haskscconnection(ship).
+        reboot.
+      } else {
+        if core:volume:exists("operations.ks") core:volume:delete("operations.ks").
+        rename "backup.op.ks" to "operations.ks".
+        print "KSC connection lost. Stored operations file loaded".
+        break.
+      }
+    }
+    wait 1.
+  }
+}
+output("executing operations", true).
+wait 2.
+run operations.
+if deleteOnFinish delete operations.
+output("operations execution complete", true).
+wait 2.
+reboot.

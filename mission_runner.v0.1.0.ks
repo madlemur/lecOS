@@ -1,1 +1,97 @@
-{ local MANEUVER_LEAD_TIME is 600. local SLOPE_THRESHHOLD is 1. local INFINITY is 2^64. global transfer is lex( "version", "0.2.1", "seek", seek@ ). function seek { parameter target_body, target_periapsis. local attempt is 1. local data is starting_data(attempt). until 0 { set data to hillclimb["seek"](data, transfer_fit(target_body), 20). if transfers_to(nextnode, target_body) { break. } set attempt to attempt + 1. set data to starting_data(attempt). } set data to hillclimb["seek"](data, inclination_fit(target_body), 10). set data to hillclimb["seek"](data, inclination_fit(target_body), 1). set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 10). set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 1). remove_any_nodes(). return make_node(data). } function transfer_fit { parameter target_body. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if transfers_to(maneuver, target_body) return 1. local fitness is -closest_approach( target_body, time:seconds + maneuver:eta, time:seconds + maneuver:eta + maneuver:orbit:period ). return fitness. } return fitness_fn@. } function inclination_fit { parameter target_body. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if not transfers_to(maneuver, target_body) return -INFINITY. return -abs(maneuver:orbit:nextpatch:inclination). } return fitness_fn@. } function periapsis_fit { parameter target_body, target_periapsis. function fitness_fn { parameter data. local maneuver is make_node(data). remove_any_nodes(). add maneuver. wait 0.01. if not transfers_to(maneuver, target_body) return -INFINITY. return -abs(maneuver:orbit:nextpatch:periapsis - target_periapsis). } return fitness_fn@. } function closest_approach { parameter target_body, start_time, end_time. local start_slope is slope_at(target_body, start_time). local end_slope is slope_at(target_body, end_time). local middle_time is (start_time + end_time) / 2. local middle_slope is slope_at(target_body, middle_time). until (end_time - start_time < 0.1) or middle_slope < 0.1 { if (middle_slope * start_slope) > 0 set start_time to middle_time. else set end_time to middle_time. set middle_time to (start_time + end_time) / 2. set middle_slope to slope_at(target_body, middle_time). } return separation_at(target_body, middle_time). } function slope_at { parameter target_body, at_time. return ( separation_at(target_body, at_time + 1) - separation_at(target_body, at_time - 1) ) / 2. } function separation_at { parameter target_body, at_time. return (positionat(ship, at_time) - positionat(target_body, at_time)):mag. } function transfers_to { parameter maneuver, target_body. return ( maneuver:orbit:hasnextpatch and maneuver:orbit:nextpatch:body = target_body ). } function starting_data { parameter attempt. return list(time:seconds + (MANEUVER_LEAD_TIME * attempt), 0, 0, 0). } function make_node { parameter maneuver. return node(maneuver[0], maneuver[1], maneuver[2], maneuver[3]). } function remove_any_nodes { until not hasnode { remove nextnode. wait 0.01. } } } 
+// Mission Runner v0.1.0
+// Kevin Gisi
+// http://youtube.com/gisikw
+
+{
+  function mission_runner {
+    parameter sequence, events is lex().
+    local runmode is 0. local done is 0.
+
+    // This object gets passed to sequences and events, to allow them to
+    // interact with the event loop.
+    local mission is lex(
+      "add_event", add_event@,
+      "remove_event", remove_event@,
+      "next", next@,
+      "switch_to", switch_to@,
+      "runmode", report_runmode@,
+      "terminate", terminate@
+    ).
+
+    // Recover runmode from disk
+    if core:volume:exists("mission.runmode") {
+      local last_mode is core:volume:open("mission.runmode"):readall():string.
+      local n is indexof(sequence, last_mode).
+      if n <> -1 update_runmode(n / 2).
+    }
+
+    // Main event loop
+    until done {
+      sequence[runmode * 2 + 1](mission).
+      for event in events:values event(mission).
+      wait 0.01.
+    }
+    if core:volume:exists("mission.runmode")
+      core:volume:delete("mission.runmode").
+
+    // Update runmode, persisting to disk
+    function update_runmode {
+      parameter n.
+      if not core:volume:exists("mission.runmode")
+        core:volume:create("mission.runmode").
+      local file is core:volume:open("mission.runmode").
+      file:clear().
+      file:write(sequence[2 * n]).
+      set runmode to n.
+    }
+
+    // List helper function
+    function indexof {
+      parameter _list, item. local i is 0.
+      for el in _list {
+        if el = item return i.
+        set i to i + 1.
+      }
+      return -1.
+    }
+
+ // +---------------------------------------------------+
+ // | Mission functions, passed to sequences and events |
+ // +---------------------------------------------------+
+
+    // Add a new named event to the main event loop
+    function add_event {
+      parameter name, delegate.
+      set events[name] to delegate.
+    }
+
+    // Remove an event by name
+    function remove_event {
+      parameter name.
+      events:remove(name).
+    }
+
+    // Switch to the next available runmode
+    function next {
+      update_runmode(runmode + 1).
+    }
+
+    // Switch to a specific runmode by name
+    function switch_to {
+      parameter name.
+      update_runmode(indexof(sequence, name) / 2).
+    }
+
+    // Return the current runmode (read-only)
+    function report_runmode {
+      return sequence[runmode * 2].
+    }
+
+    // Allow explicit termination of the event loop
+    function terminate {
+      set done to 1.
+    }
+  }
+
+  global run_mission is mission_runner@.
+}
