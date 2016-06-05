@@ -19,14 +19,12 @@
 
   function rendezvous {
     parameter tgt.
+    approach(tgt, 100).
+    await_nearest(tgt, 2000).
+    approach(tgt, 50).
+    await_nearest(tgt, 800).
     approach(tgt, 10).
-    await_nearest(tgt, 200).
-    cancel(tgt).
-    approach(tgt, 5).
-    await_nearest(tgt, 80).
-    cancel(tgt).
-    approach(tgt, 1).
-    await_nearest(tgt, 10).
+    await_nearest(tgt, 100).
     cancel(tgt).
   }
 

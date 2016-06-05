@@ -1,6 +1,6 @@
 
 {
-  local TARGET_ALTITUDE is 125000.
+  local TARGET_ALTITUDE is 115000.
 
   global rescue_mission is lex(
     "sequence", list(
@@ -47,9 +47,9 @@
 
   function preflight {
     parameter mission.
-
+    global missthrottle is 0.
     set ship:control:pilotmainthrottle to 0.
-    lock throttle to 1.
+    lock throttle to missthrottle.
     lock steering to heading(90, 90).
     wait 5.
     mission["next"]().
@@ -59,10 +59,10 @@
     parameter mission.
 
     stage. wait 5.
-    lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
-    lock target_pitch to -90 * pct_alt^0.5 + 90.
-    lock throttle to 1. // Honestly, just lock throttle to 1
-    lock steering to heading(90, target_pitch).
+    //lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
+    //lock target_pitch to -90 * pct_alt^0.5 + 90.
+    set missthrottle to 1.
+    lock steering to heading(90, 85).
     mission["next"]().
   }
 
@@ -79,6 +79,13 @@
       lock steering to prograde.
       wait until alt:radar > body:atm:height.
       mission["next"]().
+    }
+    if ship:VELOCITY:surface:mag > 75 {
+      set mission["throttle"] to MIN(1, available_twr/1.5).
+    }
+    if not mission:haskey("gravturn") AND 90 - vang(ship:up:vector, ship:srfprograde:forevector) < 85.2 {
+      set mission["gravturn"] to true.
+      lock steering to heading(90, 90 - vang(ship:up:vector, ship:srfprograde:forevector)).
     }
   }
 
