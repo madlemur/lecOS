@@ -1,10 +1,13 @@
-// Mission Runner v0.1.0
+// Mission Runner v0.2.0
 // Kevin Gisi
+// Kenneth Cummins
 // http://youtube.com/gisikw
 
 {
   function mission_runner {
-    parameter sequence, events is lex().
+    parameter sequence is list(), events is lex(), data is lex(), mission_data is lex().
+
+    output("starting mission runner").
     local runmode is 0. local done is 0.
 
     // This object gets passed to sequences and events, to allow them to
@@ -15,7 +18,11 @@
       "next", next@,
       "switch_to", switch_to@,
       "runmode", report_runmode@,
-      "terminate", terminate@
+      "terminate", terminate@,
+      "add_data", add_data@,
+      "remove_data", remove_data@,
+      "get_data", get_data@,
+      "has_data", has_data@
     ).
 
     // Recover runmode from disk
@@ -26,9 +33,9 @@
     }
 
     // Main event loop
-    until done {
+    until done or runmode * 2 >= sequence:length {
       sequence[runmode * 2 + 1](mission).
-      for event in events:values event(mission).
+      for event in events:keys events[event](mission).
       wait 0.01.
     }
     if core:volume:exists("mission.runmode")
@@ -37,12 +44,38 @@
     // Update runmode, persisting to disk
     function update_runmode {
       parameter n.
+      save_state().
       if not core:volume:exists("mission.runmode")
         core:volume:create("mission.runmode").
       local file is core:volume:open("mission.runmode").
       file:clear().
       file:write(sequence[2 * n]).
       set runmode to n.
+      load_state().
+    }
+
+    function save_state {
+      local d is lex().
+      if core:volume:exists("mission.data") {
+        set d to readjson("mission.data").
+      }
+      if data:length > 0 {
+        set d[report_runmode()] to data.
+      } else {
+        if d:haskey(report_runmode()) d:remove(report_runmode()).
+      }
+      set d["__MISSION__"] to mission_data.
+      writejson(d, "mission.data").
+    }
+
+    function load_state {
+      local d is lex().
+      if core:volume:exists("mission.data")
+        set d to readjson("mission.data").
+      set data to lex().
+      if d:haskey(report_runmode()) set data to d[report_runmode()].
+      if d:haskey("__MISSION__") set mission_data to d["__MISSION__"].
+      else set mission_data to lex().
     }
 
     // List helper function
@@ -85,6 +118,39 @@
     // Return the current runmode (read-only)
     function report_runmode {
       return sequence[runmode * 2].
+    }
+
+    // Add a key/value pair
+    function add_data {
+      parameter key, value, isglobal is false.
+      if isglobal
+        set mission_data[key] to value.
+      else
+        set data[key] to value.
+      save_state().
+    }
+
+    // Remove a key/value pair
+    function remove_data {
+      parameter key.
+      data:remove(key).
+      mission_data:remove(key).
+      save_state().
+    }
+
+    // Retreive the value for a given key
+    function get_data {
+      parameter key.
+      if data:haskey(key)
+        return data[key].
+      else
+        return mission_data[key].
+    }
+
+    // Checks for existance of a key
+    function has_data {
+      parameter key.
+      return data:haskey(key) or mission_data:haskey(key).
     }
 
     // Allow explicit termination of the event loop

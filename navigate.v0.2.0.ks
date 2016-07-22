@@ -1,6 +1,6 @@
 {
 	global navigate is lex (
-		"version", "0.1.0",
+		"version", "0.2.0", // Now requires kOS 1.0
 		"hohmann", hohmann@, // Degree offset, target
 		"target_incl", match_target_inc@,
 		"to_incl", match_inc@,
@@ -9,17 +9,15 @@
 		"change_peri", set_peri@,
 		"go_to_alt", set_immediate_alt@,
 		"synodic_period", synodicPeriod@,
-		"circularized", circularize@,
-		// Data fields
-		"in_circ", false,
-		"circ_lock", false
+		"circularize", circularize@,
+		"circularized", circularized@,
+		"throttle", 0
 	).
 
 	function hohmann {
-		parameter tgt.
+		parameter tgt, approach is 0.
 		local r1 is (ship:obt:semimajoraxis + ship:obt:semiminoraxis) / 2.
 		local r2 is (tgt:obt:semimajoraxis + tgt:obt:semiminoraxis) / 2.
-		local approach is 0.
 
 		// dv is not a vector in cartesian space, but rather in "maneuver space"
 	  // (z = prograde/retrograde dv)
@@ -69,16 +67,16 @@
 			//   - rendezvous up (untested)
 			//   - transfer down (untested)
 			if T > Tmax {
+				output("navigate:hohmann - no intersect found within " + (T - time:seconds) + "s", true).
 				return node(0, 0, 0, dv:z).
 			} else if (r2 > r1 and norm:y > 0) or (r2 < r1 and norm:y < 0) or (r2 > r1 and dot > 0) or (r2 < r1 and dot < 0) or eta < -1 {
 				set T to T + dt.
+				output("navigate:hohmann - incrementing to " + T, true).
 			} else if abs(eta) > 1 {
 				set T to T + eta / 2.
+				output("navigate:hohmann - skipping forward to " + T, true).
 			} else {
-				local vc is VECDRAW(positionat(ship, T+eta), dv, blue).
-				local vd is VECDRAW(positionat(ship, T+eta), velocityat(ship, T+eta):orbit:normalized * dv, green).
-				set vc:show to true.
-				set vd:show to true.
+				output("navigate:hohmann - found node in " + eta + "s", true).
 				return node(T + eta, 0, 0, dv:z).
 			}
 		}
@@ -371,24 +369,24 @@
 	  }
 
 	  function circularize {
-	    if not navigate["in_circ"] {
-	      print "Circularizing.".
-	      lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
-	      set navigate["in_circ"] to true.
-	      set navigate["circ_lock"] to false.
-	    }
-	    if not navigate["circ_lock"] and
-	      abs(steeringmanager:yawerror) < 2 and
-	      abs(steeringmanager:pitcherror) < 2 and
-	      abs(steeringmanager:rollerror) < 2 {
-	        print "..Steering locked.  Now throttling.".
-	        set navigate["circ_lock"] to true.
-	        lock throttle to 0.02 + (30*ship:obt:eccentricity).
-	    }
-	    if navigate["circ_lock"] and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
-	      print "Done Circularlizing.".
-	      set navigate["in_circ"] to false.
-	      set navigate["circ_lock"] to false.
+			local thrott is { return 0. }.
+	    lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
+			set thrott to { return circ_thrott(). }.
+			lock throttle to thrott.
+		}
+
+		function circ_thrott {
+			if abs(steeringmanager:yawerror) < 2 and
+				 abs(steeringmanager:pitcherror) < 2 and
+				 abs(steeringmanager:rollerror) < 2 {
+					 return 0.02 + (30*ship:obt:eccentricity).
+			} else {
+				return 0.
+			}
+		}
+
+		function circularized {
+	    if (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
 	      unlock steering.
 	      unlock throttle.
 	      return true.

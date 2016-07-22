@@ -1,7 +1,7 @@
 
 {
   local TARGET_ALTITUDE is 100000.
-  local FINAL_ALTITUDE is 750000.
+  local FINAL_ALTITUDE is 550000.
   local CONSTELLATION_SIZE is 4.
 
   global comsat_mission is lex(
@@ -10,12 +10,10 @@
       "launch", launch@,
       "ascent", ascent@,
       "circularize", circularize@,
-      "exec_parking", exec_node@,
       "enable_antennae", enable_antennae@,
       "raise_apoapsis", raise_apoapsis@,
       "exec_raise", exec_node@,
       "circularize_final", circularize@,
-      "exec_final", exec_node@,
       "idle", idle@
     ),
     "events", lex()
@@ -48,6 +46,7 @@
       shutdown.
     }
     mission:add("control", ship:name + " " + max((myIndex - 1), 1)).
+    mission:add("SRBs", stage:solidfuel > 1).
     set ship:name to ship:name + " " + myIndex.
 
     set ship:control:pilotmainthrottle to 0.
@@ -60,9 +59,11 @@
   function launch {
     parameter mission.
 
-    stage. wait 5.
+    stage.
+    set mission["SRBs"] TO stage:solidfuel > 1.
+    wait 5.
     lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
-    lock target_pitch to -90 * pct_alt^0.5 + 90.
+    lock target_pitch to -90 * pct_alt^0.75 + 90.
     lock throttle to 1. // Honestly, just lock throttle to 1
     lock steering to heading(90, target_pitch).
     mission["next"]().
@@ -71,8 +72,9 @@
   function ascent {
     parameter mission.
 
-    if available_twr < .01 {
+    if available_twr < .01 or (mission["SRBs"] and stage:solidfuel < 0.1) {
       stage.
+      set mission["SRBs"] TO stage:solidfuel > 1.
       wait 1.
     }
     if apoapsis > TARGET_ALTITUDE {
@@ -86,9 +88,10 @@
 
   function circularize {
     parameter mission.
-
-    add navigate["change_peri"](ship:orbit:apoapsis). wait 0.1.
-    mission["next"]().
+    if(eta:apoapsis < 10) {
+      navigate["circularize"]().
+      mission["next"]().
+    }
   }
 
   function enable_antennae {

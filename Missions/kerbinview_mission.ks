@@ -1,7 +1,7 @@
 
 {
   local TARGET_ALTITUDE is 100000.
-  local FINAL_ALTITUDE is 250000.
+  local FINAL_ALTITUDE is 495000.
 
   global kerbinview_mission is lex(
     "sequence", list(
@@ -25,7 +25,7 @@
 
     set ship:control:pilotmainthrottle to 0.
     lock throttle to 1.
-    lock steering to heading(90, 90).
+    lock steering to heading(7, 90).
     wait 5.
     mission["next"]().
   }
@@ -35,9 +35,9 @@
 
     stage. wait 5.
     lock pct_alt to min(1.0, max(0, alt:radar / (body:atm:height * 0.85))).
-    lock target_pitch to -90 * pct_alt^0.5 + 90.
+    lock target_pitch to -90 * pct_alt^0.75 + 90.
     lock throttle to 1. // Honestly, just lock throttle to 1
-    lock steering to heading(0, target_pitch).
+    lock steering to heading(7, target_pitch).
     mission["next"]().
   }
 
@@ -78,7 +78,7 @@
 
     toggle AG4. // Set for the fairings
     wait 1.0.
-    local p to ship:partstitled("CommTech EXP-VR-2T")[0].
+    local p to ship:partstitled("Communotron 16")[0].
     local m to p:getmodule("ModuleRTAntenna").
     m:doevent("activate").
     panels on.

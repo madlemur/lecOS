@@ -1,16 +1,10 @@
 
 {
-  local TARGET_ALTITUDE is 95000.
-  local TARGET_HEADING is 90.
+  output("Loading rendezvous mission", true).
 
-  output("Loading rendezous mission", true).
-
-  global rescue_mission is lex(
+  local curr_mission is lex(
     "sequence", list(
-      "preflight", preflight@,
-      "launch", launch@,
-      "ascent", ascent@,
-      "circularize", circularize@,
+      "rdv_preflight", preflight@,
       "match_inclination", match_inclination@,
       "exec_inclination", exec_node@,
       "hohmann_transfer", hohmann_transfer@,
@@ -19,43 +13,27 @@
       "exec_velocity", exec_node@,
       "rendezvous", exec_rendezvous@
     ),
-    "events", lex()
+    "events", lex(),
+    "dependency", list (
+      "navigate.v0.2.0.ks",
+      "maneuver.v0.2.0.ks",
+      "rendezvous.v0.1.0.ks"
+    )
   ).
+
+  global rendezvous_mission is {
+    return curr_mission.
+  }.
 
   function preflight {
     parameter mission.
     if hastarget {
       mission:add_data("target", target, true).
-      set ship:control:pilotmainthrottle to 0.
-      lock throttle to 1.
-      lock steering to heading(90, 90).
-      launcher["start_countdown"](5).
       mission["next"]().
+    } else {
+      hudtext( "Please select a target for rendezvous" , 1, 2, 25, yellow, true).
+      wait 1.
     }
-  }
-
-  function launch {
-    parameter mission.
-    if launcher["countdown"]() <= 0 {
-      if launcher["launch"](TARGET_HEADING, TARGET_ALTITUDE) {
-        mission["add_event"]("staging", event_lib["staging"]).
-        mission["next"]().
-      }
-      output("Unable to launch, mission terminated.", true).
-      mission["terminate"]().
-    }
-  }
-
-  function ascent {
-    parameter mission.
-    if launcher["ascent_complete"]()
-      mission["next"]().
-  }
-
-  function circularize {
-    parameter mission.
-    launcher["circularize"]().
-    set mission["circularize"] to { if launcher["circularized"]() mission["next"](). }.
   }
 
   function match_inclination {

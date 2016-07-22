@@ -27,7 +27,7 @@
     lock throttle to min(mnv_time(v:mag), 1).
 
     until vdot(n:burnvector, v) < 0 {
-      wait 0.1.
+      wait 0.01.
     }
     lock throttle to 0.
     unlock steering.

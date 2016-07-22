@@ -19,20 +19,46 @@
 
     // Seek encounter, advancing start time if we get stuck
     until 0 {
-      set data to hillclimb["seek"](data, transfer_fit(target_body), 20).
-      if transfers_to(nextnode, target_body) { break. }
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 100).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 50).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 10).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 1).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 0.5).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 0.25).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 0.1).
+      set data to hillclimb["seek"](data, transfer_fit(target_body), 0.05).
+
+      local tnode is make_node(data).
+      add tnode. wait 0.01.
+
+      if target_body:istype("Body") and transfers_to(nextnode, target_body) {
+        remove tnode. wait 0.01.
+        break.
+      }
+
+      if target_body:istype("Vessel") {
+        local atime is time:seconds + tnode:eta + tnode:orbit:period/2.
+        local adist is (positionat(target_body, atime) - positionat(ship, atime)):mag.
+        print adist + "m".
+        if adist < target_periapsis {
+          remove tnode. wait 0.01.
+          break.
+        }
+      }
+      remove tnode. wait 0.01.
       set attempt to attempt + 1.
       set data to starting_data(attempt).
     }
 
-    // Refine for inclination
-    set data to hillclimb["seek"](data, inclination_fit(target_body), 10).
-    set data to hillclimb["seek"](data, inclination_fit(target_body), 1).
-
-    // Refine for periapsis
-    set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 10).
-    set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 1).
-
+    if target_body:istype("Body") {
+      // Refine for inclination
+      set data to hillclimb["seek"](data, inclination_fit(target_body), 10).
+      set data to hillclimb["seek"](data, inclination_fit(target_body), 1).
+      set data to hillclimb["seek"](data, inclination_fit(target_body), 0.1).
+      // Refine for periapsis
+      set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 10).
+      set data to hillclimb["seek"](data, periapsis_fit(target_body, target_periapsis), 1).
+    }
     remove_any_nodes().
     return make_node(data).
   }
@@ -44,12 +70,21 @@
       local maneuver is make_node(data).
       remove_any_nodes().
       add maneuver. wait 0.01.
-      if transfers_to(maneuver, target_body) return 1.
-      local fitness is -closest_approach(
-        target_body,
-        time:seconds + maneuver:eta,
-        time:seconds + maneuver:eta + maneuver:orbit:period
-      ).
+      if target_body:istype("Body") {
+        if transfers_to(maneuver, target_body) {
+          remove maneuver. wait 0.01. return 1.
+        }
+      }
+      local fitness is -INFINITY.
+      if maneuver:orbit:periapsis > body:atm:height {
+        local fitness_check is closest_approach(
+          target_body,
+          time:seconds + maneuver:eta,
+          time:seconds + maneuver:eta + maneuver:orbit:period
+        ).
+        set fitness to -fitness_check.
+      }
+      remove maneuver. wait 0.01.
       return fitness.
     }
     return fitness_fn@.
@@ -60,10 +95,21 @@
     function fitness_fn {
       parameter data.
       local maneuver is make_node(data).
-      remove_any_nodes().
       add maneuver. wait 0.01.
-      if not transfers_to(maneuver, target_body) return -INFINITY.
-      return -abs(maneuver:orbit:nextpatch:inclination).
+      if target_body:istype("Body") {
+        if not transfers_to(maneuver, target_body) {
+          remove maneuver. wait 0.01. return -INFINITY.
+        }
+        local fitness is -abs(maneuver:orbit:nextpatch:inclination).
+        remove maneuver. wait 0.01. return fitness.
+      }
+      if target_body:istype("Vessel") {
+        local itime is time:seconds + maneuver:eta + maneuver:orbit:period.
+        local vang_diff is vang(vcrs(target_body:velocity:orbit, target_body:position - target_body:body:position),
+                                vcrs(velocityat(ship, itime):orbit, positionat(ship:body, itime))).
+        remove maneuver. wait 0.01.
+        return -vang_diff.
+      }
     }
     return fitness_fn@.
   }
@@ -77,8 +123,25 @@
       local maneuver is make_node(data).
       remove_any_nodes().
       add maneuver. wait 0.01.
-      if not transfers_to(maneuver, target_body) return -INFINITY.
-      return -abs(maneuver:orbit:nextpatch:periapsis - target_periapsis).
+      if target_body:istype("Body") {
+        if not transfers_to(maneuver, target_body) {
+          remove maneuver. wait 0.01. return -INFINITY.
+        }
+        local fitness is -abs(maneuver:orbit:nextpatch:periapsis - target_periapsis).
+        remove maneuver. wait 0.01. return fitness.
+      } else if target_body:istype("Vessel") {
+        local fitness is -INFINITY.
+        if maneuver:orbit:periapsis > body:atm:height {
+          local fitness_check is closest_approach(
+            target_body,
+            time:seconds + maneuver:eta,
+            time:seconds + maneuver:eta + maneuver:orbit:period
+          ).
+          set fitness to -fitness_check[0].
+        }
+        remove maneuver. wait 0.01.
+        return fitness.
+      }
     }
     return fitness_fn@.
   }
@@ -116,6 +179,7 @@
   function transfers_to {
     parameter maneuver, target_body.
     return (
+      target_body:istype("Body") and
       maneuver:orbit:hasnextpatch and
       maneuver:orbit:nextpatch:body = target_body
     ).
@@ -123,12 +187,12 @@
 
   function starting_data {
     parameter attempt.
-    return list(time:seconds + (MANEUVER_LEAD_TIME * attempt), 0, 0, 0).
+    return list(time:seconds + MANEUVER_LEAD_TIME * attempt, 0, 0, 0).
   }
 
   function make_node {
-    parameter maneuver.
-    return node(maneuver[0], maneuver[1], maneuver[2], maneuver[3]).
+    parameter data.
+    return node(data[0], data[1], data[2], data[3]).
   }
 
   function remove_any_nodes {
