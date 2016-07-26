@@ -17,7 +17,7 @@
   local missions is list().
   runpath("1:" + missionfiles["launch"]).
   runpath("1:" + missionfiles["rendezvous"]).
-  missions:add(launch_mission(100000, 90, 250000)).
+  missions:add(launch_mission(100000, 90)).
   missions:add(rendezvous_mission()).
 
   local dependency is uniqueSet(
@@ -40,6 +40,8 @@
     download(file, file).
     runpath("1:" + file).
   }
+  mission_sequence:add("mission_complete").
+  mission_sequence:add({ parameter mission. set deleteOnFinish to true. hudtext("Mission script completed.", 5, 2, 25, white, true). mission["terminate"](). }).
 
   run_mission(mission_sequence, mission_events).
 }

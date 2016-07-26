@@ -28,7 +28,6 @@
   function preflight {
     parameter mission.
     if hastarget {
-      mission:add_data("target", target, true).
       mission["next"]().
     } else {
       hudtext( "Please select a target for rendezvous" , 1, 2, 25, yellow, true).
@@ -38,7 +37,7 @@
 
   function match_inclination {
     parameter mission.
-    add navigate["target_incl"](mission:get_data("target")).
+    add navigate["target_incl"](target).
     mission["next"]().
   }
 
@@ -50,7 +49,7 @@
 
   function hohmann_transfer {
     parameter mission.
-    local hnode is navigate["hohmann"](mission:get_data("target"),0).
+    local hnode is navigate["hohmann"](target,0).
     if hnode:eta < 5 {
       output("Waiting half an orbit to find an intersection.", true).
       wait ship:orbit:period / 2.
@@ -62,13 +61,13 @@
 
   function match_velocity {
     parameter mission.
-    add navigate["target_vel"](mission:get_data("target")).
+    add navigate["target_vel"](target).
     mission["next"]().
   }
 
   function exec_rendezvous {
     parameter mission.
-    rendezvous["rendezvous"](mission:get_data("target")).
+    rendezvous["rendezvous"](target).
     mission["next"]().
   }
 }

@@ -38,23 +38,22 @@
     parameter mission.
 
     set ship:control:pilotmainthrottle to 0.
-    lock throttle to 1.
-    lock steering to heading(90, 90).
-    launcher["start_countdown"](5).
-    mission["next"]().
+    output("Launch parameters: " + curr_mission["target_heading"] + ":" + curr_mission["target_altitude"] + ":" + curr_mission["final_altitude"], true).
+    if launcher["launch"](curr_mission["target_heading"], curr_mission["target_altitude"], curr_mission["final_altitude"]) {
+      launcher["start_countdown"](5).
+      mission["next"]().
+    } else {
+      output("Unable to launch, mission terminated.", true).
+      mission["terminate"]().
+    }
+
   }
 
   function launch {
     parameter mission.
     if launcher["countdown"]() <= 0 {
-      output("Launch parameters: " + curr_mission["target_heading"] + ":" + curr_mission["target_altitude"] + ":" + curr_mission["final_altitude"], true).
-      if launcher["launch"](curr_mission["target_heading"], curr_mission["target_altitude"], curr_mission["final_altitude"]) {
-        mission["add_event"]("staging", event_lib["staging"]).
-        mission["next"]().
-      } else {
-        output("Unable to launch, mission terminated.", true).
-        mission["terminate"]().
-      }
+      mission["add_event"]("staging", event_lib["staging"]).
+      mission["next"]().
     }
   }
 

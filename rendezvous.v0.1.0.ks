@@ -22,8 +22,8 @@
     approach(tgt, 100).
     await_nearest(tgt, 2000).
     approach(tgt, 50).
-    await_nearest(tgt, 800).
-    approach(tgt, 10).
+    await_nearest(tgt, 500).
+    approach(tgt, 5).
     await_nearest(tgt, 100).
     cancel(tgt).
   }
@@ -39,7 +39,7 @@
     PARAMETER craft, speed.
 
     LOCK relativeVelocity TO craft:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-    steer(craft:POSITION). LOCK STEERING TO craft:POSITION.
+    steer(craft:POSITION).
 
     LOCK maxAccel TO SHIP:MAXTHRUST / SHIP:MASS.
     LOCK THROTTLE TO MIN(1, ABS(speed - relativeVelocity:MAG) / maxAccel).
@@ -53,7 +53,7 @@
     PARAMETER craft.
 
     LOCK relativeVelocity TO craft:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-    steer(relativeVelocity). LOCK STEERING TO relativeVelocity.
+    steer(relativeVelocity).
 
     LOCK maxAccel TO SHIP:MAXTHRUST / SHIP:MASS.
     LOCK THROTTLE TO MIN(1, relativeVelocity:MAG / maxAccel).

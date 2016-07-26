@@ -43,7 +43,7 @@
     if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
     if first_dest_ap < (1.05 * body:atm:height) {
-      output("Initial destination orbit must be above the atmosphere!", true).
+      output("Initial destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
       lock throttle to 0.
       return false.
     }
@@ -103,7 +103,7 @@
 
     if launcher["transferring"] and ship:apoapsis >= launcher["launch_params"]["second_dest_ap"] {
       lock throttle to 0.
-      return true.
+      return eta:apoapsis < 10.
     }
 
     return false.
