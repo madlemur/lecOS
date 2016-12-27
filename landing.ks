@@ -1,5 +1,5 @@
 {
-  global landing is lex(
+  local landing is lex(
     "version", "0.1.0",
     "hoverslam", hoverslam@
   ).
@@ -29,4 +29,5 @@
     	set ship:control:pilotmainthrottle to 0.
     	rcs off.
   }
+  export(landing).
 }

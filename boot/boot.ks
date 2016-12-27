@@ -1,158 +1,170 @@
 clearscreen.
-set deleteOnFinish to false.
-set backupOps to false.
-set tempName to ship:name.
-set sName to "".
-from {local i is 0.} until i = tempName:length step {set i to i + 1.} do {
-  if(tempName[i] = " ") {
-    set sName to sName + "_".
-  } else {
-    set sName to sName + tempName[i].
-  }
-  wait 0.001.
-}
-log "" to sName + ".log.np2".
 
-// checks if the requested file exists on the KSC disk
-// checks if there is enough room to copy a file from the archive to the vessel
-// will remove the log file if the space it frees will allow the transfer
-// also accounts for wether the transfer file has a local copy that will be replaced
-function download {
-  parameter archiveFile, localFile, keepfile is true.
-  if not addons:rt:haskscconnection(ship) return false.
-  if not archive:exists(archiveFile) return false.
-  if core:volume:exists(localFile) set localFileSize to core:volume:open(localFile):size.
-  else set localFileSize to 0.
-  set archiveFileSize to archive:open(archiveFile):size.
-  if core:volume:freespace - archiveFileSize + localFileSize < 0 {
-    local logfile is sName + ".log.np2".
-    if core:volume:freespace - archiveFileSize + localFileSize + core:volume:open(logfile):size > 0 {
-      copypath(logfile, "0:").
-      core:volume:delete(logfile).
-      print "deleting log to free up space".
+{
+
+  local deleteOnFinish is false.
+  local backupOps is false.
+  local tempName is ship:name.
+  local sName is "".
+  from {local i is 0.} until i = tempName:length step {set i to i + 1.} do {
+    if(tempName[i] = " ") {
+      set sName to sName + "_".
     } else {
-      print "unable to copy file " + archiveFile + ". Not enough disk space".
-      return false.
+      set sName to sName + tempName[i].
     }
+    wait 0.001.
   }
-  if localFileSize core:volume:delete(localFile).
-  copypath("0:" + archiveFile, localFile).
-  if not keepfile
-    archive:delete(archiveFile).
-  return true.
-}
+  log "" to sName + ".log.np2".
 
-// check if we have new instructions stored in event of comm loss
-if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
-  core:volume:delete("operations.ks").
-  movepath("backup.op.ks", "operations.ks").
-  print "KSC connection lost. Stored operations file loaded".
-} else {
+  local s is stack().
+  local d is lex().
+  global import is {
+    parameter n.
+    s:push(n).
+    if not exists("1:/"+n)
+      copypath("0:/"+n,"1:/"+n).
+    runpath("1:/"+n).
+    return d[n].
+  }.
+  
+  global export is {
+    parameter v.
+    set d[s:pop()] to v.
+  }.
 
-  // check for connection to KSC for archive volume access if no instructions stored
-  if not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
-    print "waiting for KSC link...".
-    wait until addons:rt:haskscconnection(ship).
-  }
+  // checks if the requested file exists on the KSC disk
+  // checks if there is enough room to copy a file from the archive to the vessel
+  // will remove the log file if the space it frees will allow the transfer
+  // also accounts for wether the transfer file has a local copy that will be replaced
+  global download is {
+    parameter archiveFile, localFile, keepfile is true.
+    if not addons:rt:haskscconnection(ship) return false.
+    if not archive:exists(archiveFile) return false.
+    if core:volume:exists(localFile) core:volume:delete(localFile).
+    copypath("0:" + archiveFile, localFile).
+    if not keepfile
+      archive:delete(archiveFile).
+    return true.
+  }.
 
-  print "KSC link established, fetching operations...".
-  wait addons:rt:kscdelay(ship).
+  // for logging data, with various considerations
+  global output is {
+    parameter text.
+    parameter toConsole is false.
 
-  // check for a new bootscript
-  // destroy the log if needed to make room, but only if it'll make room
-  if download(sName + ".boot.ks", "boot.ks", false) {
-    print "new boot file received".
-    wait 2.
-    reboot.
-  }
+    // print to console if requested
+    if toConsole print text.
 
-  // check for new operations
-  // destroy the log if needed to make room, but only if it'll make room
-  if download(sName + ".op.ks", "operations.ks", false) print "new operations file received".
-}
-
-
-// ///////////////////
-// do any boot stuff
-// ///////////////////
-set ship:control:pilotmainthrottle to 0.
-
-// date stamp the log
-// won't output to archive copy until first ouput() call
-set logList to list().
-set logStr to "[" + time:calendar + "] boot up".
-log logStr to sName + ".log.np2".
-logList:add(logStr).
-
-// for logging data, with various considerations
-function output {
-  parameter text.
-  parameter toConsole is false.
-
-  // print to console if requested
-  if toConsole print text.
-
-  // log the new data to the file if it will fit
-  // otherwise delete the log to start anew
-  set logStr to "[" + time:hour + ":" + time:minute + ":" + floor(time:second) + "] " + text.
-  if core:volume:freespace > logStr:length {
-    log logStr to sName + ".log.np2".
-  } else {
-    core:volume:delete(sName + ".log.np2").
-    log "[" + time:calendar + "] new file" to sName + ".log.np2".
-    log logStr to sName + ".log.np2".
-  }
-
-  // store a copy on KSC hard drives if we are in contact
-  // otherwise save and copy over as soon as we are back in contact
-  if addons:rt:haskscconnection(ship) {
-    if not archive:exists(sName + ".log.np2") archive:create(sName + ".log.np2").
-    if logList:length {
-      for entry in logList archive:open(sName + ".log.np2"):writeln(entry).
-      set logList to list().
-    }
-    archive:open(sName + ".log.np2"):writeln(logStr).
-  } else {
+    // log the new data to the file if it will fit
+    // otherwise delete the log to start anew
+    set logStr to "[" + time:hour + ":" + time:minute + ":" + floor(time:second) + "] " + text.
     if core:volume:freespace > logStr:length {
-      logList:add(logStr).
+      log logStr to sName + ".log.np2".
     } else {
       core:volume:delete(sName + ".log.np2").
-      logList:add("[" + time:calendar + "] new file").
-      logList:add(logStr).
+      log "[" + time:calendar + "] new file" to sName + ".log.np2".
+      log logStr to sName + ".log.np2".
     }
-  }
-}
 
-// store new instructions while a current operations program is running
-// if we lose connection before a new script is uploaded, this will run
-// running ops should check backupOps flag and call download(shipName + ".bop.ks.", "backup.op.ks").
-when addons:rt:haskscconnection(ship) and archive:exists(sName + ".bop.ks.") then {
-  set backupOps to true.
-  if addons:rt:haskscconnection(ship) preserve.
-}
-
-// run operations?
-if not core:volume:exists("operations.ks") and addons:rt:haskscconnection(ship) {
-  print "waiting to receive operations...".
-  until download(sName + ".op.ks.", "operations.ks") {
-    if not addons:rt:haskscconnection(ship) {
-      if not core:volume:exists("backup.op.ks") {
-        print "KSC connection lost, awaiting connection...".
-        wait until addons:rt:haskscconnection(ship).
-        reboot.
+    // store a copy on KSC hard drives if we are in contact
+    // otherwise save and copy over as soon as we are back in contact
+    if addons:rt:haskscconnection(ship) {
+      if not archive:exists(sName + ".log.np2") archive:create(sName + ".log.np2").
+      if logList:length {
+        for entry in logList archive:open(sName + ".log.np2"):writeln(entry).
+        set logList to list().
+      }
+      archive:open(sName + ".log.np2"):writeln(logStr).
+    } else {
+      if core:volume:freespace > logStr:length {
+        logList:add(logStr).
       } else {
-        if core:volume:exists("operations.ks") core:volume:delete("operations.ks").
-        movepath("backup.op.ks", "operations.ks").
-        print "KSC connection lost. Stored operations file loaded".
-        break.
+        core:volume:delete(sName + ".log.np2").
+        logList:add("[" + time:calendar + "] new file").
+        logList:add(logStr).
       }
     }
-    wait 1.
-  }
+  }.
+
+  local boot is {
+    // check if we have new instructions stored in event of comm loss
+    if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+      core:volume:delete("operations.ks").
+      movepath("backup.op.ks", "operations.ks").
+      print "KSC connection lost. Stored operations file loaded".
+    } else {
+
+      // check for connection to KSC for archive volume access if no instructions stored
+      if not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+        print "waiting for KSC link...".
+        wait until addons:rt:haskscconnection(ship).
+      }
+
+      print "KSC link established, fetching operations...".
+      wait addons:rt:kscdelay(ship).
+
+      // check for a new bootscript
+      // destroy the log if needed to make room, but only if it'll make room
+      if download(sName + ".boot.ks", "boot.ks", false) {
+        print "new boot file received".
+        wait 2.
+        reboot.
+      }
+
+      // check for new operations
+      // destroy the log if needed to make room, but only if it'll make room
+      if download(sName + ".op.ks", "operations.ks", false) print "new operations file received".
+    }
+
+
+    // ///////////////////
+    // do any boot stuff
+    // ///////////////////
+    set ship:control:pilotmainthrottle to 0.
+
+    // date stamp the log
+    // won't output to archive copy until first ouput() call
+    set logList to list().
+    set logStr to "[" + time:calendar + "] boot up".
+    log logStr to sName + ".log.np2".
+    logList:add(logStr).
+
+
+
+    // store new instructions while a current operations program is running
+    // if we lose connection before a new script is uploaded, this will run
+    // running ops should check backupOps flag and call download(shipName + ".bop.ks.", "backup.op.ks").
+    when addons:rt:haskscconnection(ship) and archive:exists(sName + ".bop.ks.") then {
+      set backupOps to true.
+      if addons:rt:haskscconnection(ship) preserve.
+    }
+
+    // run operations?
+    if not core:volume:exists("operations.ks") and addons:rt:haskscconnection(ship) {
+      print "waiting to receive operations...".
+      until download(sName + ".op.ks.", "operations.ks") {
+        if not addons:rt:haskscconnection(ship) {
+          if not core:volume:exists("backup.op.ks") {
+            print "KSC connection lost, awaiting connection...".
+            wait until addons:rt:haskscconnection(ship).
+            reboot.
+          } else {
+            if core:volume:exists("operations.ks") core:volume:delete("operations.ks").
+            movepath("backup.op.ks", "operations.ks").
+            print "KSC connection lost. Stored operations file loaded".
+            break.
+          }
+        }
+        wait 1.
+      }
+    }
+    output("executing operations", true).
+    RUNPATH("1:operations.ks").
+    if deleteOnFinish deletepath("1:operations.ks").
+    output("operations execution complete", true).
+    wait 2.
+    reboot.
+  }.
+
+  boot().
 }
-output("executing operations", true).
-RUNPATH("1:operations.ks").
-if deleteOnFinish deletepath("1:operations.ks").
-output("operations execution complete", true).
-wait 2.
-reboot.

@@ -1,6 +1,5 @@
 {
   local event_lib is lex(
-    "version", "0.1.0",
     "staging", staging@
   ).
 
@@ -24,6 +23,6 @@
       steeringmanager:resetpids().
     }
   }
-  
+
   export(event_lib).
 }

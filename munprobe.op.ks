@@ -6,8 +6,7 @@
 
 {
   local missionfiles is lex(
-    "launch", "Missions/launch_mission.ks",
-    "rendezvous", "Missions/rendezvous_mission.ks"
+    "launch", "Missions/launch_mission.ks"
   ).
 
   for file in missionfiles:values {
@@ -16,11 +15,13 @@
   }
 
   local missions is list().
-  missions:add(launch_mission(100000, 90)).
-  missions:add(rendezvous_mission()).
+  missions:add(launch_mission(100000, 90, 750000)).
 
   local dependency is uniqueSet(
-    "mission_runner.v0.1.0.ks"
+    "mission_runner.v0.1.0.ks",
+    "transfer.v0.2.1.ks",
+    "hillclimb.v0.1.0.ks",
+    "maneuver.v0.2.0.ks"
   ).
   local mission_sequence is list().
   local mission_events is lex().
@@ -39,6 +40,8 @@
     download(file, file).
     runpath("1:" + file).
   }
+  mission_sequence:add("mun_transfer").
+  mission_sequence:add({ parameter mission. transfer["seek"]("Mun", 20000). maneuver["exec"](). maneuver["set_apo"](20000). maneuver["exec"]().mission["next"](). }).
   mission_sequence:add("mission_complete").
   mission_sequence:add({ parameter mission. set deleteOnFinish to true. hudtext("Mission script completed.", 5, 2, 25, white, true). mission["terminate"](). }).
 
