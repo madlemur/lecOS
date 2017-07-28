@@ -19,12 +19,27 @@
 
   function rendezvous {
     parameter tgt.
-    approach(tgt, 100).
-    await_nearest(tgt, 2000).
-    approach(tgt, 50).
-    await_nearest(tgt, 500).
-    approach(tgt, 5).
-    await_nearest(tgt, 100).
+    cancel(tgt,100).
+    lock tgtdist to (ship:position - tgt:position):mag.
+    if(tgtdist > 2000) {
+      approach(tgt, 100).
+      await_nearest(tgt, 2000).
+    }
+    cancel(tgt,50).
+    if(tgtdist > 500) {
+      approach(tgt, 50).
+      await_nearest(tgt, 500).
+    }
+    cancel(tgt,5).
+    if(tgtdist > 100) {
+      approach(tgt, 5).
+      await_nearest(tgt, 100).
+    }
+    cancel(tgt,2).
+    if(tgtdist > 5) {
+      approach(tgt, 2).
+      await_nearest(tgt,5).
+    }
     cancel(tgt).
   }
 
@@ -41,7 +56,7 @@
     LOCK relativeVelocity TO craft:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
     steer(craft:POSITION).
 
-    LOCK maxAccel TO SHIP:MAXTHRUST / SHIP:MASS.
+    LOCK maxAccel TO max(SHIP:MAXTHRUST / SHIP:MASS,0.000001).
     LOCK THROTTLE TO MIN(1, ABS(speed - relativeVelocity:MAG) / maxAccel).
 
     WAIT UNTIL relativeVelocity:MAG > speed - 0.1.
@@ -51,14 +66,15 @@
 
   FUNCTION cancel {
     PARAMETER craft.
+    PARAMETER tolerance is 0.01.
 
     LOCK relativeVelocity TO craft:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
     steer(relativeVelocity).
 
-    LOCK maxAccel TO SHIP:MAXTHRUST / SHIP:MASS.
+    LOCK maxAccel TO max(SHIP:MAXTHRUST / SHIP:MASS,0.000001).
     LOCK THROTTLE TO MIN(1, relativeVelocity:MAG / maxAccel).
 
-    WAIT UNTIL relativeVelocity:MAG < 0.1.
+    WAIT UNTIL relativeVelocity:MAG < tolerance + 0.01.
     LOCK THROTTLE TO 0.
   }
 

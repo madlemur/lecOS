@@ -1,4 +1,4 @@
-INSTALLDIR = /cygdrive/c/Program\ Files\ (x86)/Steam/steamapps/common/Kerbal\ Space\ Program/Ships/Script
+INSTALLDIR = ~/Desktop/Kerbal\ Space\ Program/Ships/Script
 STAGEDIR = packed
 MISSIONINSTALLDIR = $(INSTALLDIR)/Missions
 MISSIONSTAGEDIR = $(STAGEDIR)/Missions

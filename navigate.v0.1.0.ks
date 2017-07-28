@@ -8,11 +8,7 @@
 		"change_apo", set_apo@,
 		"change_peri", set_peri@,
 		"go_to_alt", set_immediate_alt@,
-		"synodic_period", synodicPeriod@,
-		"circularized", circularize@,
-		// Data fields
-		"in_circ", false,
-		"circ_lock", false
+		"synodic_period", synodicPeriod@
 	).
 
 	function hohmann {
@@ -368,32 +364,6 @@
 	    } else {
 	      return result.
 	    }
-	  }
-
-	  function circularize {
-	    if not navigate["in_circ"] {
-	      print "Circularizing.".
-	      lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
-	      set navigate["in_circ"] to true.
-	      set navigate["circ_lock"] to false.
-	    }
-	    if not navigate["circ_lock"] and
-	      abs(steeringmanager:yawerror) < 2 and
-	      abs(steeringmanager:pitcherror) < 2 and
-	      abs(steeringmanager:rollerror) < 2 {
-	        print "..Steering locked.  Now throttling.".
-	        set navigate["circ_lock"] to true.
-	        lock throttle to 0.02 + (30*ship:obt:eccentricity).
-	    }
-	    if navigate["circ_lock"] and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
-	      print "Done Circularlizing.".
-	      set navigate["in_circ"] to false.
-	      set navigate["circ_lock"] to false.
-	      unlock steering.
-	      unlock throttle.
-	      return true.
-	    }
-	    return false.
 	  }
 
 	function compass_for {

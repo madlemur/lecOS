@@ -19,9 +19,9 @@
 
     local starttime is time:seconds + n:eta - mnv_time(v:mag)/2.
     if starttime < time:seconds return.
-    lock steering to v.
 
-    if autowarp { warpto(starttime - 30). }
+    if autowarp { warpto(starttime - 120). }
+    lock steering to nextnode:burnvector.
 
     wait until time:seconds >= starttime.
     lock throttle to min(mnv_time(v:mag), 1).

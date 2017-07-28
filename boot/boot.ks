@@ -19,7 +19,7 @@ log "" to sName + ".log.np2".
 // also accounts for wether the transfer file has a local copy that will be replaced
 function download {
   parameter archiveFile, localFile, keepfile is true.
-  if not addons:rt:haskscconnection(ship) return false.
+  if not HOMECONNECTION:ISCONNECTED return false.
   if not archive:exists(archiveFile) return false.
   if core:volume:exists(localFile) set localFileSize to core:volume:open(localFile):size.
   else set localFileSize to 0.
@@ -43,20 +43,20 @@ function download {
 }
 
 // check if we have new instructions stored in event of comm loss
-if core:volume:exists("backup.op.ks") and not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+if core:volume:exists("backup.op.ks") and not (HOMECONNECTION:ISCONNECTED) {
   core:volume:delete("operations.ks").
   movepath("backup.op.ks", "operations.ks").
   print "KSC connection lost. Stored operations file loaded".
 } else {
 
   // check for connection to KSC for archive volume access if no instructions stored
-  if not (addons:rt:haskscconnection(ship) or addons:rt:haslocalcontrol(ship)) {
+  if not (HOMECONNECTION:ISCONNECTED) {
     print "waiting for KSC link...".
-    wait until addons:rt:haskscconnection(ship).
+    wait until HOMECONNECTION:ISCONNECTED.
   }
 
   print "KSC link established, fetching operations...".
-  wait addons:rt:kscdelay(ship).
+  wait HOMECONNECTION:DELAY.
 
   // check for a new bootscript
   // destroy the log if needed to make room, but only if it'll make room
@@ -105,7 +105,7 @@ function output {
 
   // store a copy on KSC hard drives if we are in contact
   // otherwise save and copy over as soon as we are back in contact
-  if addons:rt:haskscconnection(ship) {
+  if HOMECONNECTION:ISCONNECTED {
     if not archive:exists(sName + ".log.np2") archive:create(sName + ".log.np2").
     if logList:length {
       for entry in logList archive:open(sName + ".log.np2"):writeln(entry).
@@ -126,19 +126,19 @@ function output {
 // store new instructions while a current operations program is running
 // if we lose connection before a new script is uploaded, this will run
 // running ops should check backupOps flag and call download(shipName + ".bop.ks.", "backup.op.ks").
-when addons:rt:haskscconnection(ship) and archive:exists(sName + ".bop.ks.") then {
+when HOMECONNECTION:ISCONNECTED and archive:exists(sName + ".bop.ks.") then {
   set backupOps to true.
-  if addons:rt:haskscconnection(ship) preserve.
+  if HOMECONNECTION:ISCONNECTED preserve.
 }
 
 // run operations?
-if not core:volume:exists("operations.ks") and addons:rt:haskscconnection(ship) {
+if not core:volume:exists("operations.ks") and HOMECONNECTION:ISCONNECTED {
   print "waiting to receive operations...".
   until download(sName + ".op.ks.", "operations.ks") {
-    if not addons:rt:haskscconnection(ship) {
+    if not HOMECONNECTION:ISCONNECTED {
       if not core:volume:exists("backup.op.ks") {
         print "KSC connection lost, awaiting connection...".
-        wait until addons:rt:haskscconnection(ship).
+        wait until HOMECONNECTION:ISCONNECTED.
         reboot.
       } else {
         if core:volume:exists("operations.ks") core:volume:delete("operations.ks").
