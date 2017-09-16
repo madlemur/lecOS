@@ -1,43 +1,56 @@
-// Launch mission
-// This mission will take a craft into a circular orbit
-// By default, it goes to a 100km equatorial orbit
-// Can lauch to a certain heading, altitude, and even
-// launch to an initial parking altitude before transferring
-// to the final altitude.
 {
-  output("Loading launch mission", true).
 
   local curr_mission is lex(
     "sequence", list(
       "preflight", preflight@,
       "launch", launch@,
       "ascent", ascent@,
-      "enable_antennae", enable_antennae@,
       "circularize", circularize@,
       "transfer", transfer@,
       "final_circ", circularize@,
-      "end_launch", end_launch@
+      "orbit", orbit@,
+      "descend", descend@,
+      "land", land@
     ),
-    "events", lex(),
-    "dependency", list(
-      "launcher.v0.1.0.ks",
-      "event_lib.v0.1.0.ks"
-    )
+    "events", lex()
   ).
 
-  global launch_mission is {
+  global prober_mission is {
     parameter TARGET_ALTITUDE is 100000.
     parameter TARGET_HEADING is 90.
-    parameter FINAL_ALTITUDE is -1.
+    parameter FINAL_ALTITUDE is 250000.
     set curr_mission["target_altitude"] to TARGET_ALTITUDE.
     set curr_mission["target_heading"] to TARGET_HEADING.
     set curr_mission["final_altitude"] to FINAL_ALTITUDE.
     return curr_mission.
   }.
 
+  function orbit {
+    parameter mission.
+    wait ship:orbit:period.
+    mission["next"]().
+  }
+
+  function descend {
+    parameter mission.
+    lock steering to srfretrograde.
+    wait 20.
+    lock throttle to .5.
+    until periapsis < 5000 {
+      wait 0.01.
+    }
+    lock throttle to 0.
+    mission["next"]().
+  }
+
+  function land {
+    parameter mission.
+    mission["next"]().
+  }
+
   function preflight {
     parameter mission.
-    if ship:status <> "PRELAUNCH" mission["switch_to"]("end_launch").
+
     set ship:control:pilotmainthrottle to 0.
     output("Launch parameters: " + curr_mission["target_heading"] + ":" + curr_mission["target_altitude"] + ":" + curr_mission["final_altitude"], true).
     if launcher["launch"](curr_mission["target_heading"], curr_mission["target_altitude"], curr_mission["final_altitude"]) {
@@ -47,18 +60,12 @@
       output("Unable to launch, mission terminated.", true).
       mission["terminate"]().
     }
-
   }
-
-  function end_launch {
-    parameter mission.
-    mission["next"]().
-  }
-
   function launch {
     parameter mission.
     if launcher["countdown"]() <= 0 {
       mission["add_event"]("staging", event_lib["staging"]).
+      mission["add_event"]("antenna", enable_antennae@).
       mission["next"]().
     }
   }
@@ -67,7 +74,7 @@
     parameter mission.
     if launcher["ascent_complete"]() {
         mission["next"]().
-      }
+    }
   }
 
   function circularize {
@@ -85,14 +92,22 @@
 
   function transfer {
     parameter mission.
-    if launcher["transfer_complete"]()
+    if launcher["transfer_complete"]() {
       mission["next"]().
+    }
   }
 
   function enable_antennae {
     parameter mission.
-
-    mission["next"]().
+    if altitude > body:atm:height {
+      local p to ship:partstitled("Kommunotronski 16")[0].
+      local m to p:getmodule("ModuleRTAntenna").
+      m:doevent("activate").
+      AG4 ON.
+      wait 2.
+      panels on.
+      rcs on.
+      mission["remove_event"]("antenna").
+    }
   }
-
 }

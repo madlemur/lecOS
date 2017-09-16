@@ -7,15 +7,13 @@
 // target craft's orbit and position. This is for fine-tuning the rendezvous.
 {
 
+  local relativeVelocity is 0.
 
   global rendezvous is lex(
     "version", "0.1.0",
-    "steer", steer@,
     "approach", approach@,
-    "cancel", cancel@,
+    "cancel", approach@,
     "await_nearest", await_nearest@,
-    "rendezvous", rendezvous@
-  ).
 
   function rendezvous {
     parameter tgt.
@@ -47,14 +45,15 @@
     PARAMETER vector.
 
     LOCK STEERING TO vector.
-    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR, vector) < 2.
+    WAIT UNTIL abs(steeringmanager:yawerror) < 2 and
+			 abs(steeringmanager:pitcherror) < 2 and
+			 abs(steeringmanager:rollerror) < 2.
   }
 
   FUNCTION approach {
-    PARAMETER craft, speed.
-
+    PARAMETER craft, speed is 0.
     LOCK relativeVelocity TO craft:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-    steer(craft:POSITION).
+    LOCAL deadband is max(speed * 0.02, 0.05).
 
     LOCK maxAccel TO max(SHIP:MAXTHRUST / SHIP:MASS,0.000001).
     LOCK THROTTLE TO MIN(1, ABS(speed - relativeVelocity:MAG) / maxAccel).
@@ -79,12 +78,14 @@
   }
 
   FUNCTION await_nearest {
-    PARAMETER craft, minDistance.
-
-    UNTIL 0 {
-      SET lastDistance TO craft:DISTANCE.
-      WAIT 0.5.
-      IF craft:distance > lastDistance OR craft:distance < minDistance { BREAK. }
+    PARAMETER craft, minDistance is 1.
+    if rendezvous["lastDistance"] < 0 {
+      set rendezvous["lastDistance"] to craft:DISTANCE.
     }
+    if craft:distance > rendezvous["lastDistance"] OR craft:distance <= minDistance {
+      set rendezvous["lastDistance"] to -1.
+      return true.
+    }
+    return false.
   }
 }

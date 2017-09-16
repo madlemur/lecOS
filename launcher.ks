@@ -7,34 +7,30 @@
     "ascent_complete", ascent_complete@,
     "transfer_complete", transfer_complete@,
     "circularize", circularize@,
-    "circularized", circularized@,
-    // Data points
-    "count", -1,
-    "last_count", 0,
-    "transferring", false,
-    "ascending", false
+    "circularized", circularized@
   ).
 
   function countdown {
-    parameter count.
+    parameter count, data.
     if count < 0 {
-      local i is launcher["count"] - 1.
-      if time:seconds > launcher["last_count"] + 1.0 {
-        set launcher["last_count"] to time:seconds.
+      local i is data["count"] - 1.
+      if time:seconds > data["last_count"] + 1.0 {
+        set data["last_count"] to time:seconds.
         if i >= 0
           hudtext( "T minus " + i + "s" , 1, 1, 25, white, true).
-        set launcher["count"] to i.
+        set data["count"] to i.
         return i.
       }
-      return launcher["count"].
+      return data["count"].
     }
-    set launcher["last_count"] to time:seconds.
-    set launcher["count"] to count.
+    set data["last_count"] to time:seconds.
+    set data["count"] to count.
     hudtext( "T minus " + count + "s" , 1, 1, 25, white, true).
     return count.
   }
 
   function launch {
+    parameter data.
     parameter dest_compass. // not exactly right when not 90.
     parameter first_dest_ap. // first destination apoapsis.
     parameter second_dest_ap is -1. // second destination apoapsis.
@@ -43,70 +39,66 @@
     if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
     if first_dest_ap < (1.05 * body:atm:height) {
-      output("Initial destination orbit must be above " + (1.05 * body:atm:height)/1000 + "km!", true).
+      output("Initial destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
       lock throttle to 0.
       return false.
     }
 
-    set launcher["launch_params"] to lex (
+    set data["launch_params"] to lex (
       "dest_compass", dest_compass,
       "first_dest_ap", first_dest_ap,
       "second_dest_ap", second_dest_ap,
       "second_dest_long", second_dest_long
     ).
-    set launcher["ascending"] to false.
-    set launcher["transferring"] to false.
+    set data["ascending"] to false.
+    set data["transferring"] to false.
 
     // For all atmo launches with fins it helps to teach it that the fins help
     // torque, which it fails to realize:
-    set pitch to 0.
-    lock steering to heading(launcher["launch_params"]["dest_compass"], 90 + pitch).
-    set tmoid to 1.
-    lock throttle to tmoid.
+    lock steering to heading(data["launch_params"]["dest_compass"], 90).
+    lock throttle to 1.
 
     return true.
   }
 
   function ascent_complete {
-    if ship:apoapsis >= launcher["launch_params"]["first_dest_ap"] * 0.98 {
-      lock throttle to max(0, (launcher["launch_params"]["first_dest_ap"] - ship:apoapsis) / 5000).
-      if eta:apoapsis < 10 {
+    parameter data.
+    if ship:apoapsis > data["launch_params"]["first_dest_ap"] {
+      lock throttle to (data["launch_params"]["first_dest_ap"] - ship:apoapsis) / 2000.
+    }
+    if data["ascending"] {
+      if ship:altitude > body:atm:height {
         lock throttle to 0.
-        return true.
+        lock steering to prograde.
       }
-    }
-    if launcher["ascending"] {
-      set salt to ship:altitude.
-      set tta to eta:apoapsis.
-      set pitch to -sqrt(0.1705 * salt) + 5.
-      set teta to (-1 * pitch) + tgain * (pitch + 90).
-      set pitch to max(-90, pitch).
-      set tmoid to max(-1/(1+5^(min(teta - tta, 27.5632997166971552428868)))+1, 0.15).
     } else if ship:airspeed > 75 {
-      output("Ascending to " + launcher["launch_params"]["first_dest_ap"], true).
-      lock twr to available_twr().
-      lock tgain to 0.1 - (0.1005 / max(twr, 0.00001)).
+      output("Ascending to " + data["launch_params"]["first_dest_ap"], true).
+      lock steering to heading(data["launch_params"]["dest_compass"], 90 - 90*(altitude/body:atm:height * 0.85)^(0.75)).
       output("Steering locked to gravity turn", true).
-      set launcher["ascending"] to true.
+      set data["ascending"] to true.
     }
-    if ship:apoapsis > launcher["launch_params"]["first_dest_ap"] * 0.85 and altitude > ship:apoapsis * 0.90 {
+    if ship:apoapsis > data["launch_params"]["first_dest_ap"] * 0.95 and altitude > ship:apoapsis * 0.90 {
       return true.
     }
     return false.
   }
 
   function transfer_complete {
-    if not launcher["transferring"] {
+    parameter data.
+    if not data["transferring"] {
       lock steering to prograde.
-      if (launcher["launch_params"]["second_dest_long"] < 0 or abs(ship:longitude - launcher["launch_params"]["second_dest_long"]) < 1) {
+      if (data["launch_params"]["second_dest_long"] < 0 or abs(ship:longitude - data["launch_params"]["second_dest_long"]) < 1) and
+        abs(steeringmanager:yawerror) < 2 and
+        abs(steeringmanager:pitcherror) < 2 and
+        abs(steeringmanager:rollerror) < 2 {
           output("Now starting second destination burn.", true).
-          lock throttle to max((launcher["launch_params"]["second_dest_ap"] - ship:apoapsis), 0) / 2000.
-          output("Now waiting for apoapsis to reach " + launcher["launch_params"]["second_dest_ap"], true).
-          set launcher["transferring"] to true.
+          lock throttle to 0.01 + (data["launch_params"]["second_dest_ap"] - ship:apoapsis) / 5000.
+          output("Now waiting for apoapsis to reach " + data["launch_params"]["second_dest_ap"], true).
+          set data["transferring"] to true.
       }
     }
 
-    if launcher["transferring"] and ship:apoapsis >= launcher["launch_params"]["second_dest_ap"] {
+    if data["transferring"] and ship:apoapsis >= data["launch_params"]["second_dest_ap"] {
       lock throttle to 0.
       return eta:apoapsis < 10.
     }
@@ -168,8 +160,6 @@
     }
     return false.
   }
-  function available_twr {
-  	local g is body:mu / (ship:altitude + body:radius)^2.
-  	return ship:maxthrust / (body:mu / (ship:altitude + body:radius)^2) / ship:mass.
-  }
+
+  export(launcher).
 }

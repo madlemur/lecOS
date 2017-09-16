@@ -5,8 +5,8 @@
 
 {
   function mission_runner {
-    parameter sequence is list(), events is lex(), data is lex(), mission_data is lex().
-
+    parameter sequence is list(), events is lex(), mission_data is lex().
+    local data is lex().
     output("starting mission runner").
     local runmode is 0. local done is 0.
 

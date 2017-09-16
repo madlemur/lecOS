@@ -11,7 +11,8 @@
       "exec_transfer", exec_node@,
       "match_velocity", match_velocity@,
       "exec_velocity", exec_node@,
-      "rendezvous", exec_rendezvous@
+      "approach", approach@,
+      "close", close@
     ),
     "events", lex(),
     "dependency", list (
@@ -28,6 +29,15 @@
   function preflight {
     parameter mission.
     if hastarget {
+      local approachQ is queue().
+      approachQ:push(100).
+      approachQ:push(5).
+      approachQ:push(0).
+      local closeQ is queue().
+      closeQ:push(2000).
+      closeQ:push(50).
+      mission["add_data"]("approachQ", approachQ, true).
+      mission["add_data"]("closeQ", closeQ, true).
       mission["next"]().
     } else {
       hudtext( "Please select a target for rendezvous" , 1, 2, 25, yellow, true).
@@ -65,9 +75,26 @@
     mission["next"]().
   }
 
-  function exec_rendezvous {
+  function approach {
     parameter mission.
-    rendezvous["rendezvous"](target).
-    mission["next"]().
+    local approachQ is mission["get_data"]("approachQ").
+    if approachQ:empty mission["next"]().
+    local approachVel is approachQ:peek().
+    if rendezvous["approach"](target, approachVel) {
+      approachQ:pop().
+      mission["switch_to"]("close").
+    }
   }
+
+  function close {
+    parameter mission.
+    local closeQ is mission["get_data"]("closeQ").
+    if closeQ:empty mission["next"]().
+    local closeDist is closeQ:peek().
+    if rendezvous["await_nearest"](target, closeDist) {
+      closeQ:pop().
+      mission["switch_to"]("approach").
+    }
+  }
+
 }
