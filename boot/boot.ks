@@ -12,7 +12,7 @@ clearscreen.
     } else {
       set sName to sName + tempName[i].
     }
-    wait 0.001.
+    wait 0.
   }
   log "" to sName + ".log.np2".
 

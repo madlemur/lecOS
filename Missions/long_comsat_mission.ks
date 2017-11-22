@@ -1,7 +1,7 @@
 
 {
   local TARGET_ALTITUDE is 100000.
-  local FINAL_ALTITUDE is 7500000.
+  local FINAL_ALTITUDE is 750000.
   local CONSTELLATION_SIZE is 1.
 
   global long_comsat_mission is lex(

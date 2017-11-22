@@ -6,6 +6,8 @@
 // to the final altitude.
 {
   output("Loading launch mission", true).
+  local launcher is lex().
+  local event_lib is lex().
 
   local curr_mission is lex(
     "sequence", list(
@@ -19,19 +21,24 @@
       "end_launch", end_launch@
     ),
     "events", lex(),
+    "mission_data", lex(),
     "dependency", list(
       "launcher.v0.1.0.ks",
       "event_lib.v0.1.0.ks"
     )
   ).
 
-  global launch_mission is {
+  local launch_mission is {
+    set launcher to import("launcher.v0.1.0.ks").
+    set event_lib to import("event_lib.v0.1.0.ks").
     parameter TARGET_ALTITUDE is 100000.
-    parameter TARGET_HEADING is 90.
+    parameter TARGET_INCLINATION is 0.
     parameter FINAL_ALTITUDE is -1.
+    parameter LONG_ASCENDING is -1.
     set curr_mission["target_altitude"] to TARGET_ALTITUDE.
-    set curr_mission["target_heading"] to TARGET_HEADING.
+    set curr_mission["target_inclination"] to TARGET_INCLINATION.
     set curr_mission["final_altitude"] to FINAL_ALTITUDE.
+    set curr_mission["long_ascending"] to LONG_ASCENDING.
     return curr_mission.
   }.
 
@@ -39,8 +46,8 @@
     parameter mission.
     if ship:status <> "PRELAUNCH" mission["switch_to"]("end_launch").
     set ship:control:pilotmainthrottle to 0.
-    output("Launch parameters: " + curr_mission["target_heading"] + ":" + curr_mission["target_altitude"] + ":" + curr_mission["final_altitude"], true).
-    if launcher["launch"](curr_mission["target_heading"], curr_mission["target_altitude"], curr_mission["final_altitude"]) {
+    output("Launch parameters: " + curr_mission["target_inclination"] + ":" + curr_mission["target_altitude"] + ":" + curr_mission["final_altitude"], true).
+    if launcher["launch"](curr_mission["target_altitude"], curr_mission["final_altitude"], curr_mission["target_inclination"], curr_mission["long_ascending"]) {
       launcher["start_countdown"](5).
       mission["next"]().
     } else {
@@ -72,14 +79,8 @@
 
   function circularize {
     parameter mission.
-    if curr_mission:haskey("circ") {
-      if launcher["circularized"]() {
-        curr_mission:remove("circ").
-        mission["next"]().
-      }
-    } else {
-      launcher["circularize"]().
-      set curr_mission["circ"] to true.
+    if launcher["circularize"]() {
+      mission["next"]().
     }
   }
 
@@ -95,4 +96,5 @@
     mission["next"]().
   }
 
+  export(launch_mission@).
 }

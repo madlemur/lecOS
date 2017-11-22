@@ -2,17 +2,24 @@
   local launch_geo is lex (
     "HALF_LAUNCH", 145,
     "changeHALF_LAUNCH", changeHALF_LAUNCH@,
-    "calcLaunchDetails", calcLaunchDetails@
+    "calcLaunchDetails", calcLaunchDetails@,
+    "azimuth", azimuth@
   ).
 
+  FUNCTION mAngle
+  {
+    PARAMETER a.
+    UNTIL a >= 0 { SET a TO a + 360. }
+    RETURN MOD(a,360).
+  }
 
   FUNCTION changeHALF_LAUNCH
   {
     PARAMETER h.
-    IF h > 0 { SET HALF_LAUNCH TO h. }
+    IF h > 0 { SET launch_geo["HALF_LAUNCH"] TO h. }
   }
 
-  FUNCTION latIncOk
+  function latIncOk
   {
     PARAMETER lat,i.
     RETURN (i > 0 AND ABS(lat) < 90 AND MIN(i,180-i) >= ABS(lat)).
@@ -35,8 +42,35 @@
 
   FUNCTION azimuth
   {
-    PARAMETER i.
-    IF latIncOk(LATITUDE,i) { RETURN mAngle(ARCSIN(COS(i) / COS(LATITUDE))). }
+
+    parameter	inc. // target inclination
+    IF latIncOk(LATITUDE,inc) {
+    	// find orbital velocity for a circular orbit at the current altitude.
+    	local V_orb is sqrt( body:mu / ( ship:altitude + body:radius)).
+
+    	// project desired orbit onto surface heading
+    	local az_orb is arcsin ( cos(inc) / cos(ship:latitude)).
+    	if (inc < 0) {
+    		set az_orb to 180 - az_orb.
+    	}
+
+    	// create desired orbit velocity vector
+    	local V_star is heading(az_orb, 0)*v(0, 0, V_orb).
+
+    	// find horizontal component of current orbital velocity vector
+    	local V_ship_h is ship:velocity:orbit - vdot(ship:velocity:orbit, up:vector)*up:vector.
+
+    	// calculate difference between desired orbital vector and current (this is the direction we go)
+    	local V_corr is V_star - V_ship_h.
+
+    	// project the velocity correction vector onto north and east directions
+    	local vel_n is vdot(V_corr, ship:north:vector).
+    	local vel_e is vdot(V_corr, heading(90,0):vector).
+
+    	// calculate compass heading
+    	local az_corr is arctan2(vel_e, vel_n).
+    	return az_corr.
+    }
     RETURN -1.
   }
 
@@ -60,8 +94,8 @@
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
     LOCAL raz IS mAngle(90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
-    pOut("Input azimuth: " + ROUND(az,2)).
-    pOut("Output azimuth: " + ROUND(raz,2)).
+    output("Input azimuth: " + ROUND(az,2)).
+    output("Output azimuth: " + ROUND(raz,2)).
     RETURN raz.
   }
 
@@ -78,7 +112,7 @@
     LOCAL eta IS 0.
     IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
     ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
-    LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
+    LOCAL launch_time IS TIME:SECONDS + eta - launch_geo["HALF_LAUNCH"].
     RETURN LIST(az,launch_time).
   }
 
@@ -92,12 +126,12 @@
     LOCAL eta_to_DN IS etaToOrbitPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
     IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
-    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < HALF_LAUNCH) AND eta_to_DN >= HALF_LAUNCH {
+    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < launch_geo["HALF_LAUNCH"]) AND eta_to_DN >= launch_geo["HALF_LAUNCH"] {
       SET eta TO eta_to_DN.
       SET az TO mAngle(180 - az).
-    } ELSE IF eta_to_AN >= HALF_LAUNCH { SET eta TO eta_to_AN. }
+    } ELSE IF eta_to_AN >= launch_geo["HALF_LAUNCH"] { SET eta TO eta_to_AN. }
     ELSE { SET eta TO eta_to_AN + BODY:ROTATIONPERIOD. }
-    LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
+    LOCAL launch_time IS TIME:SECONDS + eta - launch_geo["HALF_LAUNCH"].
     RETURN LIST(az,launch_time).
   }
 

@@ -4,11 +4,11 @@
 // http://youtube.com/gisikw
 
 {
-  function mission_runner {
+  function run_mission {
     parameter sequence is list(), events is lex(), mission_data is lex().
     local data is lex().
     output("starting mission runner").
-    local runmode is 0. local done is 0.
+    local runmode is 0. local done is false.
 
     // This object gets passed to sequences and events, to allow them to
     // interact with the event loop.
@@ -33,10 +33,19 @@
     }
 
     // Main event loop
-    until done or runmode * 2 >= sequence:length {
-      sequence[runmode * 2 + 1](mission).
-      for event in events:keys events[event](mission).
-      wait 0.01.
+    until done {
+      if sequence:length >= (runmode * 2 + 1) {
+        if sequence[runmode * 2 + 1]:typename = "UserDelegate" {
+          sequence[runmode * 2 + 1](mission).
+        } else if sequence[runmode * 2 + 1]:typename = "Lexicon"{
+          set sub_mission to import("mission_runner.v0.1.0.ks").
+          sub_mission(sequence[runmode * 2 + 1]).
+        }
+        for event in events:keys events[event](mission).
+        wait 0.
+      } else {
+        set done to true.
+      }
     }
     if core:volume:exists("mission.runmode")
       core:volume:delete("mission.runmode").
@@ -49,7 +58,9 @@
         core:volume:create("mission.runmode").
       local file is core:volume:open("mission.runmode").
       file:clear().
-      file:write(sequence[2 * n]).
+      if (n * 2) < sequence:length {
+        file:write(sequence[2 * n]).
+      }
       set runmode to n.
       load_state().
     }
@@ -117,7 +128,7 @@
 
     // Return the current runmode (read-only)
     function report_runmode {
-      return sequence[runmode * 2].
+      return sequence[min(runmode * 2, sequence:length - 1)].
     }
 
     // Add a key/value pair
@@ -155,9 +166,9 @@
 
     // Allow explicit termination of the event loop
     function terminate {
-      set done to 1.
+      set done to true.
     }
   }
 
-  global run_mission is mission_runner@.
+  export(run_mission@).
 }

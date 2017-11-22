@@ -9,7 +9,7 @@ local landing is import("landing").
 local TARGET_ALTITUDE is 100000.
 local circ is false.
 
-local probester_mission is mission(mission_definition@).
+export(mission(mission_definition@)).
 
 function mission_definition {
   parameter seq, ev, data, next.
@@ -64,5 +64,3 @@ function mission_definition {
     next().
   }
 }
-
-export(probester_mission).

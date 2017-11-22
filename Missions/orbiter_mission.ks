@@ -7,14 +7,14 @@
 {
   output("Loading Orbiter mission", true).
 
-  global orbiter_mission is lex(
+  local orbiter_mission is lex(
     "sequence", list(
       "preflight", preflight@,
       "launch", launch@,
-      "ascent", ascent@
+      "ascent", ascent@,
+      "circularize", circularize@
     ),
     "events", lex(
-      "transmitScience", science_lib["transmitScience"]
     ),
     "target_heading", 90,
     "target_altitude", 100000,
@@ -51,4 +51,19 @@
       }
   }
 
+  function circularize {
+    parameter mission.
+    if mission:haskey("circ") {
+      if launcher["circularized"]() {
+        mission:remove("circ").
+        mission["next"]().
+      }
+    } else {
+      launcher["circularize"]().
+      set mission["circ"] to true.
+    }
+  }
+
+  // Since this is meant to be imported, export the mission lexicon
+  export(orbiter_mission).
 }
