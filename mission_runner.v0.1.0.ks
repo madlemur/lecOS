@@ -35,8 +35,10 @@
     // Main event loop
     until done or runmode * 2 >= sequence:length {
       sequence[runmode * 2 + 1](mission).
-      for event in events:keys events[event](mission).
-      wait 0.01.
+      for event in events:keys {
+          events[event](mission).
+      }
+      wait 0.
     }
     if core:volume:exists("mission.runmode")
       core:volume:delete("mission.runmode").
