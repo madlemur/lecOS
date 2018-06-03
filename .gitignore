@@ -2,3 +2,4 @@
 *.ksp
 packed/
 unused_code/
+.build*
