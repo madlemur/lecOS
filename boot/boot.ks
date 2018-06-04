@@ -12,7 +12,7 @@ clearscreen.
     } else {
       set sName to sName + tempName[i].
     }
-    wait 0.001.
+    wait 0.
   }
   log "" to sName + ".log.np2".
 
@@ -182,6 +182,6 @@ clearscreen.
     parameter irfVec, SPV to SolarPrimeVector.
     return V( irfVec:x * SPV:x - irfVec:y * SPV:z, irfVec:z, irfVec:x * SPV:z + irfVec:y * SPV:x ).
   }.
-  
+
   boot().
 }

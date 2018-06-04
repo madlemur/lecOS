@@ -1,8 +1,9 @@
-// Mission Runner v0.2.0
+// Mission Runner
 // Kevin Gisi
 // Kenneth Cummins
 // http://youtube.com/gisikw
-
+@LAZYGLOBALS OFF.
+PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
 {
   function mission_runner {
     parameter sequence is list(), events is lex(), mission_data is lex().
@@ -103,7 +104,9 @@
     // Remove an event by name
     function remove_event {
       parameter name.
-      events:remove(name).
+      if events:haskey(name) {
+          events:remove(name).
+      }
     }
 
     // Switch to the next available runmode
@@ -135,8 +138,12 @@
     // Remove a key/value pair
     function remove_data {
       parameter key.
-      data:remove(key).
-      mission_data:remove(key).
+      if data:haskey(key) {
+          data:remove(key).
+      }
+      if mission_data:haskey(key) {
+          mission_data:remove(key).
+      }
       save_state().
     }
 

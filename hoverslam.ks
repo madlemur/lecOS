@@ -11,9 +11,9 @@ WAIT UNTIL ship:verticalspeed < -1.
   rcs on.
   brakes on.
   lock steering to srfretrograde.
-  when impactTime < 3 then {gear on.}
+  when impactTime < 3 then { gear on. }
 
-WAIT UNTIL trueRadar < stopDist.
+WAIT UNTIL trueRadar < ( stopDist * 1.1 ).
   print "Performing hoverslam".
   lock throttle to idealThrottle.
 
