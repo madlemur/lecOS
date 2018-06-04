@@ -9,6 +9,5 @@
         import(dependency).
       }
     local mission is import("Missions/template_mission.ks").
-    local mission_parameters is mission_file:build_mission(100000, 0, 0).
-    run_mission(mission_parameters["sequence"], mission_parameters["events"], mission_parameters["data"]).
+    run_mission(mission["sequence"], mission["events"], mission["data"]).
 }
