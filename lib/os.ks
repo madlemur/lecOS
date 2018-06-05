@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
+print("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
 {
   LOCAL lib_os IS LEXICON(
     "import", import@,
@@ -16,35 +16,6 @@ pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
 
   LOCAL VOLUME_NAMES IS listVolumes().
   pVolumes(VOLUME_NAMES).
-
-  LOCAL FUNCTION findScript {
-  	PARAMETER sname.
-  	PARAMETER spath is "".
-
-  	LOCAL ScriptPath is 0.
-
-  	if spath = "" {
-  		SET spath TO sname.
-  	}
-
-  	PRINT "Looking for " + sname + " script.".
-  	IF EXISTS(spath) OR EXISTS(spath + ".ks") {
-  		PRINT "Found local script".
-  		SET scriptPath TO spath.
-  	} ELSE IF HOMECONNECTION:ISCONNECTED {
-  		SET ARC TO VOLUME(0).
-  		IF EXISTS(ARC + spath) {
-  			PRINT "Copying remote script.".
-  			IF NOT COPYPATH(ARC + spath, sname) {
-  				PRINT "Unable to copy remote script.".
-  				SET scriptPath TO ARC + spath.
-  			} ELSE {
-  				SET scriptPath TO spath.
-  			}
-  		}
-  	}
-  	RETURN ScriptPath.
-  }
 
   LOCAL FUNCTION import {
     PARAMETER n.
@@ -71,7 +42,7 @@ pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
   {
     IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO "Disk0". }
     LOCAL cvn IS CORE:CURRENTVOLUME:NAME.
-    SET VOLUME_NAMES TO LIST(cvn).
+    LOCAL VOLUME_NAMES IS LIST(cvn).
 
     LOCAL disk_num IS 1.
     LOCAL pl IS LIST().
@@ -92,7 +63,7 @@ pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
   LOCAL FUNCTION pVolumes
   {
     PARAMETER VOLUME_NAMES IS LIST().
-    FOR vn IN VOLUME_NAMES { pOut("Volume(" + vn + ") has " + VOLUME(vn):FREESPACE + " bytes."). }
+    FOR vn IN VOLUME_NAMES { PRINT("Volume(" + vn + ") has " + VOLUME(vn):FREESPACE + " bytes."). }
   }
 
   LOCAL FUNCTION findPath
@@ -109,25 +80,34 @@ pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
   {
     PARAMETER fn, mfs.
     FOR vn IN VOLUME_NAMES { IF VOLUME(vn):FREESPACE > mfs { RETURN vn + ":/" + fn. } }
-    pOut("ERROR: no room!").
+    PRINT("ERROR: no room!").
     pVolumes().
     RETURN "".
   }
 
   LOCAL FUNCTION loadScript
   {
-    PARAMETER fn, loud IS TRUE.
-    LOCAL lfp IS findPath(fn).
+    PARAMETER fn, dfn IS "", loud IS TRUE.
+    IF dfn = "" {
+      SET dfn to fn.
+    }
+    LOCAL lfp IS findPath(dfn).
+    PRINT("Checking " + dfn).
     IF lfp <> "" { RETURN lfp. }
 
     LOCAL afp IS "0:/" + fn.
-    LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
-    IF loud { pOut("Copying from: " + afp + " (" + afs + " bytes)"). }
+    PRINT("Checking " + afp).
+    if EXISTS(afp) {
+      LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
+      IF loud { PRINT("Copying from: " + afp + " (" + afs + " bytes)"). }
 
-    SET lfp TO findSpace(fn, afs).
-    COPYPATH(afp,lfp).
-    IF loud { pOut("Copied to: " + lfp). }
-    RETURN lfp.
+      SET lfp TO findSpace(dfn, afs).
+      COPYPATH(afp,lfp).
+      IF loud { PRINT("Copied to: " + lfp). }
+      RETURN lfp.
+    } ELSE {
+      RETURN "".
+    }
   }
 
   LOCAL FUNCTION delScript
@@ -161,6 +141,7 @@ pOut("os.ks vBUILD_VERSION.BUILD_RELEASE.BUILD_PATCH BUILD_DATE").
     LOCAL lfp IS findPath(fn).
     IF lfp <> "" { RUNPATH(lfp). }
   }
+  // Faking an export here, since there was no import. Chicken. Egg. :/
   SET d["lib/os.ks"] TO lib_os.
-  RETURN lib_os.
+  global _os_ is lib_os.
 }
