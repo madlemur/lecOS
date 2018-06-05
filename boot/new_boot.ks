@@ -1,4 +1,4 @@
-@LAZYGLOBALS OFF.
+@LAZYGLOBAL OFF.
 {
     LOCAL TIMES IS LEXICON().
     LOCAL L_F IS "". // Log File
@@ -70,13 +70,13 @@
       PARAMETER lf IS "0:/log/" + pr(0,"_",SHIP:NAME) + ".txt".
       SET L_F TO lf.
       dl(SHIP:NAME).
-      IF lf <> "" { po("Log file: " + LOG_FILE). }
+      IF lf <> "" { po("Log file: " + L_F). }
     }
 
     FUNCTION dl
     {
       PARAMETER t.
-      IF LOG_FILE <> "" { LOG t TO LOG_FILE. }
+      IF L_F <> "" { LOG t TO L_F. }
     }
 
     FUNCTION po
@@ -202,7 +202,7 @@
           RETURN lfp.
       }
 
-      IF EXISTS(afp) {
+      IF HOMECONNECTION:ISCONNECTED AND EXISTS(afp) {
         LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
         SET lfp TO fs(fn, afs).
         IF lfp <> "" {
