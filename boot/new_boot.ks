@@ -24,6 +24,7 @@
         "killWarp", kw@,
         "doWarp", dw@,
         "findPath", fp@,
+        "findSpace", fs@,
         "loadScript", ls@,
         "delScript", des@,
         "runScript", rs@,
