@@ -5,7 +5,6 @@
     "start_countdown", countdown@,
     "launch", launch@,
     "ascent_complete", ascent_complete@,
-    "transfer_complete", transfer_complete@,
     "circularize", circularize@,
     "circularized", circularized@
   ).
@@ -32,79 +31,74 @@
   }
 
   function launch {
-    parameter data.
-    parameter dest_compass. // not exactly right when not 90.
-    parameter first_dest_ap. // first destination apoapsis.
-    parameter second_dest_ap is -1. // second destination apoapsis.
-    parameter second_dest_long is -1. // second destination longitude.
+    parameter ap, az, mission.
 
-    if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
-
-    if first_dest_ap < (1.05 * body:atm:height) {
-      __["pOut"]("Initial destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
+    // Set up launch parameters
+    if ap < (1.05 * body:atm:height) {
+      __["pOut"]("Destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
       lock throttle to 0.
       return false.
     }
 
-    set data["launch_params"] to lex (
-      "dest_compass", dest_compass,
-      "first_dest_ap", first_dest_ap,
-      "second_dest_ap", second_dest_ap,
-      "second_dest_long", second_dest_long
-    ).
-    set data["ascending"] to false.
-    set data["transferring"] to false.
+    mission["add_data"]("ascending", false, true).
+    mission["add_data"]("transferring", false, true).
 
-    // For all atmo launches with fins it helps to teach it that the fins help
-    // torque, which it fails to realize:
-    lock steering to heading(data["launch_params"]["dest_compass"], 90).
+    lock steering to heading(90, 90).
     lock throttle to 1.
+    __["pOut"]("Ascending to " +target_apo, true).
 
     return true.
   }
 
   function ascent_complete {
-    parameter data.
-    if ship:apoapsis > data["launch_params"]["first_dest_ap"] {
-      lock throttle to (data["launch_params"]["first_dest_ap"] - ship:apoapsis) / 2000.
+    parameter mission.
+    local target_apo is mission["get_data"]("target_altitude").
+    local inc is mission["get_data"]("target_inclination"). // orbit inclination
+    local V_orb is sqrt( constant():G * body:mass / ( target_apo + body:radius)). // orbital velocity
+    LOCK pit TO 90 - 90*(altitude/body:atm:height * 0.85)^(0.75).
+    local steer is heading(90,90).
+    LOCK steering to steer.
+
+    if ship:apoapsis > target_apo {
+      lock throttle to (target_apo - ship:apoapsis) / 2000.
     }
-    if data["ascending"] {
+    if mission["get_data"]("ascending") {
       if ship:altitude > body:atm:height {
         lock throttle to 0.
         lock steering to prograde.
-      }
+    } else {
+        set az_orb to arcsin ( cos(inc) / cos(ship:latitude)).
+        if (abs(ship:obt:inclination - inc) < 0.1) {
+            set steer to heading(az_orb, pit).
+        } else {
+            // project desired orbit onto surface heading
+            set az_orb to arcsin ( cos(inc) / cos(ship:latitude)).
+            // create desired orbit velocity vector
+            set orb_vel to heading(az_orb, 0)*v(0, 0, V_orb).
+
+            // find horizontal component of current orbital velocity vector
+            set orb_vel_h to ship:velocity:orbit - vdot(ship:velocity:orbit, up:vector:normalized)*up:vector:normalized.
+
+            // calculate difference between desired orbital vector and current (this is the direction we go)
+            set vel_corr to orb_vel - orb_vel_h.
+
+            // project the velocity correction vector onto north and east directions
+            set vel_n to vdot(vel_corr, ship:north:vector:normalized).
+            set vel_e to vdot(vel_corr, heading(90,0):vector:normalized).
+            // calculate compass heading
+            set az_corr to arctan2(vel_e, vel_n).
+
+            // update our steering
+            set steer to heading(az_corr, pit).
+        }
+    }
     } else if ship:airspeed > 75 {
-      __["pOut"]("Ascending to " + data["launch_params"]["first_dest_ap"], true).
-      lock steering to heading(data["launch_params"]["dest_compass"], 90 - 90*(altitude/body:atm:height * 0.85)^(0.75)).
       __["pOut"]("Steering locked to gravity turn", true).
       set data["ascending"] to true.
     }
-    if ship:apoapsis > data["launch_params"]["first_dest_ap"] * 0.95 and altitude > ship:apoapsis * 0.90 {
+    if ship:apoapsis > target_apo * 0.95 and altitude > ship:apoapsis * 0.90 {
       return true.
     }
-    return false.
-  }
-
-  function transfer_complete {
-    parameter data.
-    if not data["transferring"] {
-      lock steering to prograde.
-      if (data["launch_params"]["second_dest_long"] < 0 or abs(ship:longitude - data["launch_params"]["second_dest_long"]) < 1) and
-        abs(steeringmanager:yawerror) < 2 and
-        abs(steeringmanager:pitcherror) < 2 and
-        abs(steeringmanager:rollerror) < 2 {
-          __["pOut"]("Now starting second destination burn.", true).
-          lock throttle to 0.01 + (data["launch_params"]["second_dest_ap"] - ship:apoapsis) / 5000.
-          __["pOut"]("Now waiting for apoapsis to reach " + data["launch_params"]["second_dest_ap"], true).
-          set data["transferring"] to true.
-      }
-    }
-
-    if data["transferring"] and ship:apoapsis >= data["launch_params"]["second_dest_ap"] {
-      lock throttle to 0.
-      return eta:apoapsis < 10.
-    }
-
     return false.
   }
 
@@ -138,19 +132,19 @@
   function circularize {
     lock throttle to circ_thrott().
     lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
-	}
+  }
 
-	function circ_thrott {
-		if abs(steeringmanager:yawerror) < 2 and
-			 abs(steeringmanager:pitcherror) < 2 and
-			 abs(steeringmanager:rollerror) < 2 {
-				 return 0.02 + (30*ship:obt:eccentricity).
-		} else {
-			return 0.
-		}
+  function circ_thrott {
+	if abs(steeringmanager:yawerror) < 2 and
+		 abs(steeringmanager:pitcherror) < 2 and
+		 abs(steeringmanager:rollerror) < 2 {
+			 return 0.02 + (30*ship:obt:eccentricity).
+	} else {
+		return 0.
 	}
+  }
 
-	function circularized {
+  function circularized {
     if (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
       unlock steering.
       unlock throttle.
