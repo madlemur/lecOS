@@ -1,10 +1,7 @@
-// Maneuver Library v0.1.0
-// Kevin Gisi
-// http://youtube.com/gisikw
-
+@LAZYGLOBAL OFF.
+__["pOut"]("LEC MANEUVER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
 {
-  global maneuver is lex(
-    "version", "0.1.0",
+  local maneuver is lex(
     "exec", mnv_exec@,
     "burn_time", mnv_time@
   ).
@@ -63,4 +60,5 @@
 
     return g * m * isp * (1 - e^(-dV/(g*isp))) / thrust.
   }
+  export(maneuver).
 }

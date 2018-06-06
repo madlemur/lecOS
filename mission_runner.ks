@@ -2,14 +2,14 @@
 // Kevin Gisi
 // Kenneth Cummins
 // http://youtube.com/gisikw
-@LAZYGLOBALS OFF.
-PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
+@LAZYGLOBAL OFF.
+__["pOut"]("LEC MISSION_RUNNER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
 {
-  function run_mission {
+  function mission_runner {
     parameter sequence is list(), events is lex(), mission_data is lex().
     local data is lex().
-    output("starting mission runner").
-    local runmode is 0. local done is false.
+    __["pOut"]("starting mission runner").
+    local runmode is 0. local done is 0.
 
     // This object gets passed to sequences and events, to allow them to
     // interact with the event loop.
@@ -27,49 +27,39 @@ PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
     ).
 
     // Recover runmode from disk
-    if core:volume:exists("mission.runmode") {
-      local last_mode is core:volume:open("mission.runmode"):readall():string.
+    local rmp is __["findPath"]("mission.runmode").
+    if rmp <> "" {
+      local last_mode is open(rmp):readall():string.
       local n is indexof(sequence, last_mode).
       if n <> -1 update_runmode(n / 2).
     }
 
     // Main event loop
-    until done {
-      if sequence:length >= (runmode * 2 + 1) {
-        if sequence[runmode * 2 + 1]:typename = "UserDelegate" {
-          sequence[runmode * 2 + 1](mission).
-        } else if sequence[runmode * 2 + 1]:typename = "Lexicon"{
-          set sub_mission to import("mission_runner.ks").
-          sub_mission(sequence[runmode * 2 + 1]).
-        }
-        for event in events:keys events[event](mission).
-        wait 0.
-      } else {
-        set done to true.
+    until done or runmode * 2 >= sequence:length {
+      sequence[runmode * 2 + 1](mission).
+      for event in events:keys {
+          events[event](mission).
       }
+      wait 0.
     }
-    if core:volume:exists("mission.runmode")
-      core:volume:delete("mission.runmode").
+    set rmp to __["findPath"]("mission.runmode").
+    if rmp <> ""
+      __["delScript"](rmp).
 
     // Update runmode, persisting to disk
     function update_runmode {
       parameter n.
       save_state().
-      if not core:volume:exists("mission.runmode")
-        core:volume:create("mission.runmode").
-      local file is core:volume:open("mission.runmode").
-      file:clear().
-      if (n * 2) < sequence:length {
-        file:write(sequence[2 * n]).
-      }
+      __["store"](sequence[2 * n], "mission.runmode").
       set runmode to n.
       load_state().
     }
 
     function save_state {
       local d is lex().
-      if core:volume:exists("mission.data") {
-        set d to readjson("mission.data").
+      local dfp is __["findPath"]("mission.data").
+      if dfp <> "" {
+        set d to readjson(dfp).
       }
       if data:length > 0 {
         set d[report_runmode()] to data.
@@ -77,13 +67,28 @@ PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
         if d:haskey(report_runmode()) d:remove(report_runmode()).
       }
       set d["__MISSION__"] to mission_data.
-      writejson(d, "mission.data").
+      __["delScript"](dfp).
+      set dfp to __["findSpace"]("mission.data", d:dump:length * 1.2).
+      if dfp = "" {
+          __["pOut"]("Unable to save all mission data. Deleting previous runmode data.").
+          local dndx is 0.
+          while dfp = "" AND dndx < runmode {
+              d:REMOVE(sequence[dndx * 2]).
+              set dndx to dndx + 1.
+              set dfp to __["findSpace"]("mission.data", d:dump:length * 1.2).
+          }
+      }
+      if dfp <> ""
+        writejson(d, dfp).
+      else
+        __["hudMsg"]("Unable to save mission data. Mission success in danger.").
     }
 
     function load_state {
       local d is lex().
-      if core:volume:exists("mission.data")
-        set d to readjson("mission.data").
+      local dfp is __["findPath"]("mission.data").
+      if dfp <> ""
+        set d to readjson(dfp).
       set data to lex().
       if d:haskey(report_runmode()) set data to d[report_runmode()].
       if d:haskey("__MISSION__") set mission_data to d["__MISSION__"].
@@ -131,7 +136,7 @@ PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
 
     // Return the current runmode (read-only)
     function report_runmode {
-      return sequence[min(runmode * 2, sequence:length - 1)].
+      return sequence[runmode * 2].
     }
 
     // Add a key/value pair
@@ -173,9 +178,9 @@ PRINT "mission_runner vBUILD_VER.BUILD_REL.BUILD_PAT BUILD_NUM"
 
     // Allow explicit termination of the event loop
     function terminate {
-      set done to true.
+      set done to 1.
     }
   }
 
-  export(run_mission@).
+  global run_mission is mission_runner@.
 }

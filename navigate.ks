@@ -1,6 +1,7 @@
+@LAZYGLOBAL OFF.
+__["pOut"]("LEC NAVIGATE v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
 {
-	global navigate is lex (
-		"version", "0.2.0", // Now requires kOS 1.0
+	local navigate is lex (
 		"hohmann", hohmann@, // Degree offset, target
 		"target_incl", match_target_inc@,
 		"to_incl", match_inc@,
@@ -13,6 +14,8 @@
 		"circularized", circularized@,
 		"throttle", 0
 	).
+
+    local maneuver is import("maneuver.ks").
 
 	function hohmann {
 		parameter tgt, approach is 0.
@@ -67,16 +70,16 @@
 			//   - rendezvous up (untested)
 			//   - transfer down (untested)
 			if T > Tmax {
-				output("navigate:hohmann - no intersect found within " + (T - time:seconds) + "s", true).
+				__["pOut"]("navigate:hohmann - no intersect found within " + (T - time:seconds) + "s", true).
 				return node(0, 0, 0, dv:z).
 			} else if (r2 > r1 and norm:y > 0) or (r2 < r1 and norm:y < 0) or (r2 > r1 and dot > 0) or (r2 < r1 and dot < 0) or eta < -1 {
 				set T to T + dt.
-				output("navigate:hohmann - incrementing to " + T, true).
+				__["pOut"]("navigate:hohmann - incrementing to " + T, true).
 			} else if abs(eta) > 1 {
 				set T to T + eta / 2.
-				output("navigate:hohmann - skipping forward to " + T, true).
+				__["pOut"]("navigate:hohmann - skipping forward to " + T, true).
 			} else {
-				output("navigate:hohmann - found node in " + eta + "s", true).
+				__["pOut"]("navigate:hohmann - found node in " + eta + "s", true).
 				return node(T + eta, 0, 0, dv:z).
 			}
 		}
@@ -432,4 +435,5 @@
 	    return 90 - raw.
 	  }
 	}
+    export(navigate).
 }
