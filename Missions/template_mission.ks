@@ -26,12 +26,12 @@ function preflight {
   parameter mission.
 
   set ship:control:pilotmainthrottle to 0.
-  __:pOut("Launch parameters: " + mission["get_data"]("target_altitude") + ":" + mission["get_data"]("target_inclination") + ":" + mission["get_data"]("target_lan")).
+  __["pOut"]("Launch parameters: " + mission["get_data"]("target_altitude") + ":" + mission["get_data"]("target_inclination") + ":" + mission["get_data"]("target_lan")).
   if launcher["launch"](orbiter_mission["target_heading"], orbiter_mission["target_altitude"], orbiter_mission["final_altitude"]) {
     launcher["start_countdown"](5).
     mission["next"]().
   } else {
-    output("Unable to launch, mission terminated.", true).
+    __["pOut"]("Unable to launch, mission terminated.", true).
     mission["terminate"]().
   }
 

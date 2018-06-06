@@ -19,7 +19,7 @@
       if time:seconds > data["last_count"] + 1.0 {
         set data["last_count"] to time:seconds.
         if i >= 0
-          hudtext( "T minus " + i + "s" , 1, 1, 25, white, true).
+          __["hudMsg"]( "T minus " + i + "s" , 1, 1, 25, white, true).
         set data["count"] to i.
         return i.
       }
@@ -27,7 +27,7 @@
     }
     set data["last_count"] to time:seconds.
     set data["count"] to count.
-    hudtext( "T minus " + count + "s" , 1, 1, 25, white, true).
+    __["hudMsg"]( "T minus " + count + "s" , 1, 1, 25, white, true).
     return count.
   }
 
@@ -41,7 +41,7 @@
     if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
     if first_dest_ap < (1.05 * body:atm:height) {
-      output("Initial destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
+      __["pOut"]("Initial destination orbit must be above " + (1.05 * body:atm:height) + "m!", true).
       lock throttle to 0.
       return false.
     }
@@ -74,9 +74,9 @@
         lock steering to prograde.
       }
     } else if ship:airspeed > 75 {
-      output("Ascending to " + data["launch_params"]["first_dest_ap"], true).
+      __["pOut"]("Ascending to " + data["launch_params"]["first_dest_ap"], true).
       lock steering to heading(data["launch_params"]["dest_compass"], 90 - 90*(altitude/body:atm:height * 0.85)^(0.75)).
-      output("Steering locked to gravity turn", true).
+      __["pOut"]("Steering locked to gravity turn", true).
       set data["ascending"] to true.
     }
     if ship:apoapsis > data["launch_params"]["first_dest_ap"] * 0.95 and altitude > ship:apoapsis * 0.90 {
@@ -93,9 +93,9 @@
         abs(steeringmanager:yawerror) < 2 and
         abs(steeringmanager:pitcherror) < 2 and
         abs(steeringmanager:rollerror) < 2 {
-          output("Now starting second destination burn.", true).
+          __["pOut"]("Now starting second destination burn.", true).
           lock throttle to 0.01 + (data["launch_params"]["second_dest_ap"] - ship:apoapsis) / 5000.
-          output("Now waiting for apoapsis to reach " + data["launch_params"]["second_dest_ap"], true).
+          __["pOut"]("Now waiting for apoapsis to reach " + data["launch_params"]["second_dest_ap"], true).
           set data["transferring"] to true.
       }
     }
@@ -132,11 +132,7 @@
 
     local result is arctan2(trig_y, trig_x).
 
-    if result < 0 {
-      return 360 + result.
-    } else {
-      return result.
-    }
+    return __["mAngle"](result).
   }
 
   function circularize {
@@ -168,7 +164,7 @@
     PARAMETER h.
     IF h > 0 { SET HALF_LAUNCH TO h. }
   }
-  
+
   FUNCTION latIncOk
   {
     PARAMETER lat,i.
@@ -183,8 +179,8 @@
     IF latIncOk(ship_lat,i) {
       LOCAL rel_lng IS ARCSIN(TAN(ship_lat)/TAN(i)).
       IF NOT is_AN { SET rel_lng TO 180 - rel_lng. }
-      LOCAL g_lan IS mAngle(orb_lan + rel_lng - planet:ROTATIONANGLE).
-      LOCAL node_angle IS mAngle(g_lan - ship_lng).
+      LOCAL g_lan IS __["mAngle"](orb_lan + rel_lng - planet:ROTATIONANGLE).
+      LOCAL node_angle IS __["mAngle"](g_lan - ship_lng).
       SET eta TO (node_angle / 360) * planet:ROTATIONPERIOD.
     }
     RETURN eta.
@@ -193,7 +189,7 @@
   FUNCTION azimuth
   {
     PARAMETER i.
-    IF latIncOk(LATITUDE,i) { RETURN mAngle(ARCSIN(COS(i) / COS(LATITUDE))). }
+    IF latIncOk(LATITUDE,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(LATITUDE))). }
     RETURN -1.
   }
 
@@ -217,8 +213,8 @@
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
     LOCAL raz IS mAngle(90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
-    pOut("Input azimuth: " + ROUND(az,2)).
-    pOut("Output azimuth: " + ROUND(raz,2)).
+    __["pOut"]("Input azimuth: " + ROUND(az,2)).
+    __["pOut"]("Output azimuth: " + ROUND(raz,2)).
     RETURN raz.
   }
 
@@ -251,7 +247,7 @@
     IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
     ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < HALF_LAUNCH) AND eta_to_DN >= HALF_LAUNCH {
       SET eta TO eta_to_DN.
-      SET az TO mAngle(180 - az).
+      SET az TO __["mAngle"](180 - az).
     } ELSE IF eta_to_AN >= HALF_LAUNCH { SET eta TO eta_to_AN. }
     ELSE { SET eta TO eta_to_AN + BODY:ROTATIONPERIOD. }
     LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
@@ -271,12 +267,10 @@
   {
     PARAMETER launch_time.
     IF launch_time - TIME:SECONDS > 5 {
-      pOut("Waiting for orbit plane to pass overhead.").
+      __["pOut"]("Waiting for orbit plane to pass overhead.").
       WAIT 5.
-      doWarp(launch_time).
+      __["doWarp"](launch_time).
     }
   }
-
-
   export(launcher).
 }

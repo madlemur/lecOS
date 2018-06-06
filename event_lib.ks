@@ -8,7 +8,7 @@
     local englist is list().
     // We're going to cache the engine list to avoid walking the part tree every tick.
     if not event_lib:haskey("englist") {
-      output("Enumerating engines", true).
+      __["pOut"]("Enumerating engines", true).
       list engines in englist.
       set event_lib["englist"] to englist.
     }
