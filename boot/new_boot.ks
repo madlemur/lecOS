@@ -56,25 +56,7 @@
       set d[s:pop()] to v.
     }.
 
-    // Reference frame normalizers
-    global chFrame is {
-        parameter ov, os, ns is SolarPrimeVector.
-        return vdot(ov, os)*ns + (ov:z * os:x - ov:x * os:z)*V(-ns:z, 0, ns:x) + V(0, ov:y, 0).
-    }.
-
-    global toIRF is {
-      // changes to inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
-      parameter ov, sv is SolarPrimeVector.
-      return V( ov:x * sv:x + ov:z * sv:z, ov:z * sv:x - ov:x * sv:z, ov:y).
-    }.
-
-    global fromIRF is {
-      // changes from inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
-      parameter iv, SPV is SolarPrimeVector.
-      return V( iv:x * SPV:x - iv:y * SPV:z, iv:z, iv:x * SPV:z + iv:y * SPV:x ).
-    }.
-
-    po("kOS BOOTLOADER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
+    po("kOS BOOTLOADER v%VERSION_NUMBER%").
     po("Property of Lemurian Exploratory Corps (LEC).").
     po("Unlicensed usage is forbidden and not covered by any insurance, anywhere.").
     po("Waiting for system stabilization...").
@@ -187,8 +169,8 @@
 
     FUNCTION lv
     {
-      IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO "Disk0". }
-      LOCAL cvn IS CORE:CURRENTVOLUME:NAME.
+      IF CORE:VOLUME:NAME = "" { SET CORE:VOLUME:NAME TO "Disk0". }
+      LOCAL cvn IS CORE:VOLUME:NAME.
       SET V_N TO LIST(cvn).
 
       LOCAL d_n IS 1.

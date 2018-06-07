@@ -17,6 +17,24 @@ __["pOut"]("LEC NAVIGATE v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
 
     local maneuver is import("maneuver.ks").
 
+    // Reference frame normalizers
+    global chFrame is {
+        parameter ov, os, ns is SolarPrimeVector.
+        return vdot(ov, os)*ns + (ov:z * os:x - ov:x * os:z)*V(-ns:z, 0, ns:x) + V(0, ov:y, 0).
+    }.
+
+    global toIRF is {
+      // changes to inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter ov, sv is SolarPrimeVector.
+      return V( ov:x * sv:x + ov:z * sv:z, ov:z * sv:x - ov:x * sv:z, ov:y).
+    }.
+
+    global fromIRF is {
+      // changes from inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter iv, SPV is SolarPrimeVector.
+      return V( iv:x * SPV:x - iv:y * SPV:z, iv:z, iv:x * SPV:z + iv:y * SPV:x ).
+    }.
+
 	function hohmann {
 		parameter tgt, approach is 0.
 		local r1 is (ship:obt:semimajoraxis + ship:obt:semiminoraxis) / 2.
