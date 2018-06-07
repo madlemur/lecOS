@@ -67,12 +67,13 @@ __["pOut"]("LEC MISSION_RUNNER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$"
         if d:haskey(report_runmode()) d:remove(report_runmode()).
       }
       set d["__MISSION__"] to mission_data.
-      __["delScript"](dfp).
+      if dfp <> ""
+        __["delScript"](dfp).
       set dfp to __["findSpace"]("mission.data", d:dump:length * 1.2).
       if dfp = "" {
           __["pOut"]("Unable to save all mission data. Deleting previous runmode data.").
           local dndx is 0.
-          while dfp = "" AND dndx < runmode {
+          until dfp <> "" or dndx >= runmode {
               d:REMOVE(sequence[dndx * 2]).
               set dndx to dndx + 1.
               set dfp to __["findSpace"]("mission.data", d:dump:length * 1.2).
@@ -183,4 +184,5 @@ __["pOut"]("LEC MISSION_RUNNER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$"
   }
 
   global run_mission is mission_runner@.
+  export(mission_runner@).
 }

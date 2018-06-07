@@ -32,6 +32,46 @@
         "append", a_@
     ).
 
+    // Library management, required by all LEC libraries
+    global import is {
+      parameter n.
+      if d:haskey(n) {
+          return d[n].
+      }
+      s:push(n).
+      local p is ls(n).
+      if p = "" {
+          po("Unable to import " + n).
+          s:pop().
+          return "".
+      }
+      RUNONCEPATH(p).
+      return d[n].
+    }.
+
+    global export is {
+      parameter v.
+      set d[s:pop()] to v.
+    }.
+
+    // Reference frame normalizers
+    global chFrame is {
+        parameter ov, os, ns is SolarPrimeVector.
+        return vdot(ov, os)*ns + (ov:z * os:x - ov:x * os:z)*V(-ns:z, 0, ns:x) + V(0, ov:y, 0).
+    }.
+
+    global toIRF is {
+      // changes to inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter ov, sv is SolarPrimeVector.
+      return V( ov:x * sv:x + ov:z * sv:z, ov:z * sv:x - ov:x * sv:z, ov:y).
+    }.
+
+    global fromIRF is {
+      // changes from inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter iv, SPV is SolarPrimeVector.
+      return V( iv:x * SPV:x - iv:y * SPV:z, iv:z, iv:x * SPV:z + iv:y * SPV:x ).
+    }.
+
     po("kOS BOOTLOADER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
     po("Property of Lemurian Exploratory Corps (LEC).").
     po("Unlicensed usage is forbidden and not covered by any insurance, anywhere.").
@@ -40,7 +80,6 @@
     lv().
     ls("ops_loader.ks").
     rs("ops_loader.ks").
-
 
     // UI and I/O functions for consistient formatting and display
     FUNCTION pr
@@ -51,8 +90,8 @@
 
     FUNCTION ft
     {
-      PARAMETER u_time1, u_time2 IS TIME:SECONDS.
-      LOCAL ts IS (TIME - TIME:SECONDS) + ABS(u_time1 - u_time2).
+      PARAMETER t1, t2 IS TIME:SECONDS.
+      LOCAL ts IS (TIME - TIME:SECONDS) + ABS(t1 - t2).
       RETURN "[T+" + pr(2,"0",ts:YEAR - 1) + " " + pr(3,"0",ts:DAY - 1) + " " + ts:CLOCK + "]".
     }
 
@@ -248,44 +287,4 @@
       LOCAL lfp IS fp(fn).
       IF lfp <> "" { RUNPATH(lfp). }
     }
-
-    // Library management, required by all LEC libraries
-    global import is {
-      parameter n.
-      if d:haskey(n) {
-          return d[n].
-      }
-      s:push(n).
-      local p is ls(n).
-      if p = "" {
-          po("Unable to import " + n).
-          s:pop().
-          return "".
-      }
-      runpathonce(p).
-      return d[n].
-    }.
-
-    global export is {
-      parameter v.
-      set d[s:pop()] to v.
-    }.
-
-    // Reference frame normalizers
-    global chFrame is {
-        parameter oldVec, oldSP, newSP is SolarPrimeVector.
-        return vdot(oldVec, oldSP)*newSP + (oldVec:z * oldSP:x - oldVec:x * oldSP:z)*V(-newSP:z, 0, newSP:x) + V(0, oldVec:y, 0).
-    }.
-
-    global toIRF is {
-      // changes to inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
-      parameter oldVec, SPV is SolarPrimeVector.
-      return V( oldVec:x * SPV:x + oldVec:z * SPV:z, oldVec:z * SPV:x - oldVec:x * SPV:z, oldVec:y).
-    }.
-
-    global fromIRF is {
-      // changes from inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
-      parameter irfVec, SPV is SolarPrimeVector.
-      return V( irfVec:x * SPV:x - irfVec:y * SPV:z, irfVec:z, irfVec:x * SPV:z + irfVec:y * SPV:x ).
-    }.
 }
