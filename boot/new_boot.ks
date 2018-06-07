@@ -1,14 +1,14 @@
 @LAZYGLOBAL OFF.
 {
-    LOCAL TIMES IS LEXICON().
+    LOCAL TIMES IS LEX().
     LOCAL L_F IS "". // Log File
     LOCAL IMT IS -1. // INIT_MET_TS
     LOCAL IM IS "". //INIT_MET
     LOCAL V_N IS LIST(). // Volume Names
     LOCAL s is stack().
-    LOCAL d is lexicon().
+    LOCAL d is lex().
 
-    GLOBAL __ IS LEXICON(
+    GLOBAL __ IS LEX(
         "padRep", pr@,
         "formatTS", ft@,
         "formatMET", fm@,
@@ -38,15 +38,17 @@
       if d:haskey(n) {
           return d[n].
       }
-      s:push(n).
-      local p is ls(n).
-      if p = "" {
-          po("Unable to import " + n).
-          s:pop().
-          return "".
+      if exists("0:/"+n) {
+          s:push(n).
+          local p is ls(n).
+          if p = "" {
+              RUNONCEPATH("0:/"+n).
+          } else {
+              RUNONCEPATH(p).
+          }
+          return d[n].
       }
-      RUNONCEPATH(p).
-      return d[n].
+      return "".
     }.
 
     global export is {

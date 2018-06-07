@@ -24,6 +24,5 @@
       steeringmanager:resetpids().
     }
   }
-  
   export(event_lib).
 }
