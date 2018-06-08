@@ -1,97 +1,97 @@
 {
     local steer is lex(
-        "isSteerOn", isSteerOn@,
-        "steerOff", steerOff@,
-        "steerTo", steerTo@,
-        "steerSurf", steerSurf@,
-        "steerOrbit", steerOrbit@,
-        "steerNormal", steerNormal@,
-        "steerSun", steerSun@,
-        "steerAV", steerAV@,
-        "steerOk", steerOk@,
-        "dampSteering", dampSteering@
+        "isSteerOn", iso@,
+        "steerOff", so@,
+        "steerTo", st@,
+        "steerSurf", ss@,
+        "steerOrbit", sb@,
+        "steerNormal", sn@,
+        "steerSun", su@,
+        "steerAV", sv@,
+        "steerOk", sk@,
+        "dampSteering", ds@
     ).
-    LOCAL STEER_ON is FALSE.
+    LOCAL S_O is FALSE.
 
-    FUNCTION isSteerOn
+    FUNCTION iso
     {
-        return STEER_ON.
+        return S_O.
     }
 
-    function steerOff
+    function so
     {
-        IF STEER_ON { __["pOut"]("Steering disengaged."). }
-        SET STEER_ON TO FALSE.
+        IF S_O { __["pOut"]("Steering disengaged."). }
+        SET S_O TO FALSE.
         UNLOCK STEERING.
     }
 
-    FUNCTION steerTo
+    FUNCTION st
     {
-        PARAMETER mission, fore IS { RETURN FACING:VECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
-        IF NOT STEER_ON { __["pOut"]("Steering engaged."). }
-        SET STEER_ON TO TRUE.
+        PARAMETER m, fore IS { RETURN FACING:VECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
+        IF NOT S_O { __["pOut"]("Steering engaged."). }
+        SET S_O TO TRUE.
         LOCK STEERING TO LOOKDIRUP(fore(),top()).
-        mission["setTime"]("STEER").
+        m["setTime"]("STEER").
     }
 
-    FUNCTION steerSurf
+    FUNCTION ss
     {
-        PARAMETER mission, pro IS TRUE.
-        IF pro { steerTo(mission, { RETURN SRFPROGRADE:VECTOR. }). }
-        ELSE { steerTo(mission, { RETURN SRFRETROGRADE:VECTOR. }). }
+        PARAMETER m, pro IS TRUE.
+        IF pro { st(m, { RETURN SRFPROGRADE:VECTOR. }). }
+        ELSE { st(m, { RETURN SRFRETROGRADE:VECTOR. }). }
     }
 
-    FUNCTION steerOrbit
+    FUNCTION sb
     {
-        PARAMETER mission, pro IS TRUE.
-        IF pro { steerTo(mission, { RETURN PROGRADE:VECTOR. }). }
-        ELSE { steerTo(mission, { RETURN RETROGRADE:VECTOR. }). }
+        PARAMETER m, pro IS TRUE.
+        IF pro { st(m, { RETURN PROGRADE:VECTOR. }). }
+        ELSE { st(m, { RETURN RETROGRADE:VECTOR. }). }
     }
 
-    FUNCTION steerNormal
+    FUNCTION sn
     {
-        PARAMETER mission.
-        steerTo(mission, { RETURN VCRS(VELOCITY:ORBIT,-BODY:POSITION). }, { RETURN SUN:POSITION. }).
+        PARAMETER m.
+        st(m, { RETURN VCRS(VELOCITY:ORBIT,-BODY:POSITION). }, { RETURN SUN:POSITION. }).
     }
 
-    FUNCTION steerSun
+    FUNCTION su
     {
-        PARAMETER mission.
-        steerTo(mission, { RETURN SUN:POSITION. }).
+        PARAMETER m.
+        st(m, { RETURN SUN:POSITION. }).
     }
 
-    FUNCTION steerAV
+    FUNCTION sv
     {
         IF LIST("LANDED","SPLASHED"):CONTAINS(STATUS) { RETURN (2 * CONSTANT:PI / BODY:ROTATIONPERIOD). }
         RETURN VANG(VELOCITYAT(SHIP,TIME:SECONDS):ORBIT,VELOCITYAT(SHIP,TIME:SECONDS+1):ORBIT) * CONSTANT:DEGTORAD.
     }
 
-    FUNCTION steerOk
+    FUNCTION sk
     {
-        PARAMETER mission, aoa IS 1, precision IS 4, timeout_secs IS 60.
-        IF  mission["diffTime"]("STEER") <= 0.1 { RETURN FALSE. }
+        PARAMETER m, aoa IS 1, p IS 4, t IS 60.
+        IF  m["diffTime"]("STEER") <= 0.1 { RETURN FALSE. }
         IF NOT STEERINGMANAGER:ENABLED { __["hudMsg"]("ERROR: Steering Manager not enabled!"). }
 
         IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:VECTOR) < aoa AND
-         SHIP:ANGULARVEL:MAG * precision / 10 < MAX(steerAV(), 0.0005) {
+         SHIP:ANGULARVEL:MAG * p / 10 < MAX(sv(), 0.0005) {
             __["pOut"]("Steering aligned.").
             RETURN TRUE.
         }
-        IF mission["diffTime"]("STEER") > timeout_secs {
-            pOut("Steering alignment timed out.").
+        IF m["diffTime"]("STEER") > t {
+            __["pOut"]("Steering alignment timed out.").
             RETURN TRUE.
         }
         RETURN FALSE.
     }
 
-    FUNCTION dampSteering
+    FUNCTION ds
     {
-        PARAMETER mission.
+        PARAMETER m.
         __["pOut"]("Damping steering.").
         LOCAL cur_f IS FACING:VECTOR.
-        steerTo(mission, { RETURN cur_f. }).
-        WAIT UNTIL steerOk(mission).
-        steerOff().
+        st(m, { RETURN cur_f. }).
+        WAIT UNTIL sk(m).
+        so().
     }
     export(steer).
 }

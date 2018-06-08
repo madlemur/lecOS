@@ -14,25 +14,25 @@
   LOCAL LAUNCH_VEC is UP:VECTOR.
 
   function countdown {
-    parameter count, mission.
+    parameter count, m.
     local ttl is FLOOR(__["diffTime"]("launch")).
     if count < 0 {
-      local i is mission["get_data"]("count") + count.
+      local i is m["get_data"]("count") + count.
       if __["diffTime"]("launch") < i {
         if ttl >= 0 { __["hudMsg"]( "T minus " + ttl + "s" , 1, 1, 25, white, true). }
-        mission["add_data"]("count", ttl).
+        m["add_data"]("count", ttl).
         return ttl.
       }
       return i - count.
     } else {
-        mission["add_data"]("count", min(count, ttl)).
+        m["add_data"]("count", min(count, ttl)).
         if ttl <= count { __["hudMsg"]( "T minus " + count + "s" , 1, 1, 25, white, true). }
         return count.
     }
   }
 
   function launch {
-    parameter ap, az, mission.
+    parameter ap, az, m.
 
     // Set up launch parameters
     if ap < (1.05 * body:atm:height) {
@@ -41,8 +41,8 @@
       return false.
     }
 
-    mission["add_data"]("ascending", false, true).
-    mission["add_data"]("transferring", false, true).
+    m["add_data"]("ascending", false, true).
+    m["add_data"]("transferring", false, true).
 
     steer["steerTo"]({ RETURN LAUNCH_VEC }).
     lock throttle to 1.
@@ -53,14 +53,14 @@
   }
 
   function ascent_complete {
-    parameter mission.
-    local target_apo is mission["get_data"]("target_altitude").
-    local inc is mission["get_data"]("target_inclination"). // orbit inclination
+    parameter m.
+    local target_apo is m["get_data"]("target_altitude").
+    local inc is m["get_data"]("target_inclination"). // orbit inclination
 
     if ship:apoapsis > target_apo {
       lock throttle to (target_apo - ship:apoapsis) / 2000.
     }
-    if mission["get_data"]("ascending") {
+    if m["get_data"]("ascending") {
         if latIncOk(ship:latitude, inc) {
             set az_corr to launchBearing(inc, target_apo).
         } ELSE {
@@ -68,12 +68,12 @@
             else { set az_corr to 270. }
         }
         // update our steering
-        local pAlt is mission["get_data"]("pitch_alt").
-        local cAlt is mission["get_data"]("curve_alt").
+        local pAlt is m["get_data"]("pitch_alt").
+        local cAlt is m["get_data"]("curve_alt").
         set LAUNCH_VEC to heading(az_corr, launchPitch(pAlt,cAlt)).
     } else if ship:airspeed > 75 {
       __["pOut"]("Steering locked to gravity turn", true).
-      mission["add_data"]("ascending", true, true).
+      m["add_data"]("ascending", true, true).
     }
     if ship:apoapsis > target_apo * 0.95 and altitude > ship:apoapsis * 0.90 {
       return true.
@@ -81,7 +81,7 @@
     return false.
   }
 
-  function east_for {
+  function ef {
     parameter ves.
 
     return vcrs(ves:up:vector, ves:north:vector).
@@ -96,12 +96,12 @@
     return ret_val.
   }
 
-  function compass_of_vel {
-    local pointing is ship:velocity:orbit.
-    local east is east_for(ship).
+  function cov {
+    local vo is ship:velocity:orbit.
+    local east is ef(ship).
 
-    local trig_x is vdot(ship:north:vector, pointing).
-    local trig_y is vdot(east, pointing).
+    local trig_x is vdot(ship:north:vector, vo).
+    local trig_y is vdot(east, vo).
 
     local result is arctan2(trig_y, trig_x).
 
@@ -110,7 +110,7 @@
 
   function circularize {
     lock throttle to circ_thrott().
-    lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
+    lock steering to heading(cov(), -(eta_ap_with_neg()/3)).
   }
 
   function circ_thrott {
