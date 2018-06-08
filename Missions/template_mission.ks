@@ -26,7 +26,7 @@
       __["pOut"]("Launch parameters: " + template_mission["data"]["target_altitude"] + ":" + template_mission["data"]["target_inclination"] + ":" + template_mission["data"]["target_lan"]).
       set launchDetails to launcher["calcLaunchDetails"](template_mission["data"]["target_altitude"], template_mission["data"]["target_inclination"], template_mission["data"]["target_lan"]).
       mission["add_data"]("launch_azimuth", launchDetails[0], true).
-      launcher["warpToLaunch"](launchDetails[1]).
+      __["doWarp"](launchDetails[1]-5).
       if launcher["launch"](template_mission["data"]["target_altitude"], launchDetails[0], mission) {
         launcher["start_countdown"](5, mission).
         mission["next"]().
@@ -54,14 +54,14 @@
 
     function circularize {
       parameter mission.
-      if curr_mission:haskey("circ") {
+      if template_mission:haskey("circ") {
         if launcher["circularized"]() {
-          curr_mission:remove("circ").
+          template_mission:remove("circ").
           mission["next"]().
         }
       } else {
         launcher["circularize"]().
-        set curr_mission["circ"] to true.
+        set template_mission["circ"] to true.
       }
     }
 

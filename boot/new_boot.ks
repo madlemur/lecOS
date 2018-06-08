@@ -113,8 +113,8 @@
 
     FUNCTION hm
     {
-      PARAMETER t, c IS YELLOW, s IS 40.
-      HUDTEXT(t, 3, 2, s, c, FALSE).
+      PARAMETER t, del is 3, pos is 2, s IS 40, c IS YELLOW, ec is FALSE.
+      HUDTEXT(t, del, pos, s, c, ec).
       po("HUD: " + t).
     }
 

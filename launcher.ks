@@ -6,7 +6,8 @@
     "launch", launch@,
     "ascent_complete", ascent_complete@,
     "circularize", circularize@,
-    "circularized", circularized@
+    "circularized", circularized@,
+    "calcLaunchDetails", calcLaunchDetails@
   ).
 
   local HALF_LAUNCH is 145.
@@ -45,7 +46,7 @@
 
     lock steering to heading(90, 90).
     lock throttle to 1.
-    __["pOut"]("Ascending to " +target_apo, true).
+    __["pOut"]("Ascending to " +ap, true).
 
     return true.
   }
@@ -94,7 +95,7 @@
     }
     } else if ship:airspeed > 75 {
       __["pOut"]("Steering locked to gravity turn", true).
-      set data["ascending"] to true.
+      mission["add_data"]("ascending", true, true).
     }
     if ship:apoapsis > target_apo * 0.95 and altitude > ship:apoapsis * 0.90 {
       return true.
@@ -206,7 +207,7 @@
     LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
-    LOCAL raz IS mAngle(90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
+    LOCAL raz IS __["mAngle"](90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
     __["pOut"]("Input azimuth: " + ROUND(az,2)).
     __["pOut"]("Output azimuth: " + ROUND(raz,2)).
     RETURN raz.
