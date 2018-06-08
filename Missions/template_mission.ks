@@ -16,7 +16,10 @@
         "data", lex(
             "target_altitude", 300000,
             "target_inclination", 15,
-            "target_lan", 25
+            "target_lan", 25,
+            "pitch_alt", 250,
+            "curve_alt", BODY:ATM:HEIGHT * 0.9,
+            "fairings_alt", BODY:ATM:HEIGHT * 0.75
         )
     ).
 
@@ -24,9 +27,15 @@
       parameter mission.
       set ship:control:pilotmainthrottle to 0.
       __["pOut"]("Launch parameters: " + template_mission["data"]["target_altitude"] + ":" + template_mission["data"]["target_inclination"] + ":" + template_mission["data"]["target_lan"]).
-      set launchDetails to launcher["calcLaunchDetails"](template_mission["data"]["target_altitude"], template_mission["data"]["target_inclination"], template_mission["data"]["target_lan"]).
+      set launchDetails to launcher["calcLaunchDetails"](
+          template_mission["data"]["target_altitude"],
+          template_mission["data"]["target_inclination"],
+          template_mission["data"]["target_lan"]
+      ).
+      __["setTime"]("launch", TIME:SECONDS + launchDetails[1]).
       mission["add_data"]("launch_azimuth", launchDetails[0], true).
-      __["doWarp"](launchDetails[1]-5).
+      if launchDetails[1] > 60
+        __["doWarp"](launchDetails[1]-10).
       if launcher["launch"](template_mission["data"]["target_altitude"], launchDetails[0], mission) {
         launcher["start_countdown"](5, mission).
         mission["next"]().

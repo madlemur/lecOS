@@ -127,7 +127,11 @@
     FUNCTION dt
     {
       PARAMETER n.
-      RETURN TIME:SECONDS - TIMES[n].
+      IF NOT TIMES:HASKEY(n) {
+          RETURN 0.
+      } ELSE {
+          RETURN TIME:SECONDS - TIMES[n].
+      }
     }
 
     FUNCTION ds

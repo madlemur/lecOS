@@ -1,6 +1,5 @@
 {
   local launcher is lex(
-    "version", "0.1.0",
     "countdown", countdown@:bind(-1),
     "start_countdown", countdown@,
     "launch", launch@,
@@ -11,24 +10,25 @@
   ).
 
   local HALF_LAUNCH is 145.
+  local steer is import("steering.ks").
+  LOCAL LAUNCH_VEC is UP:VECTOR.
 
   function countdown {
-    parameter count, data.
+    parameter count, mission.
+    local ttl is FLOOR(__["diffTime"]("launch")).
     if count < 0 {
-      local i is data["count"] - 1.
-      if time:seconds > data["last_count"] + 1.0 {
-        set data["last_count"] to time:seconds.
-        if i >= 0
-          __["hudMsg"]( "T minus " + i + "s" , 1, 1, 25, white, true).
-        set data["count"] to i.
-        return i.
+      local i is mission["get_data"]("count") + count.
+      if __["diffTime"]("launch") < i {
+        if ttl >= 0 { __["hudMsg"]( "T minus " + ttl + "s" , 1, 1, 25, white, true). }
+        mission["add_data"]("count", ttl).
+        return ttl.
       }
-      return data["count"].
+      return i - count.
+    } else {
+        mission["add_data"]("count", min(count, ttl)).
+        if ttl <= count { __["hudMsg"]( "T minus " + count + "s" , 1, 1, 25, white, true). }
+        return count.
     }
-    set data["last_count"] to time:seconds.
-    set data["count"] to count.
-    __["hudMsg"]( "T minus " + count + "s" , 1, 1, 25, white, true).
-    return count.
   }
 
   function launch {
@@ -44,9 +44,10 @@
     mission["add_data"]("ascending", false, true).
     mission["add_data"]("transferring", false, true).
 
-    lock steering to heading(90, 90).
+    steer["steerTo"]({ RETURN LAUNCH_VEC }).
     lock throttle to 1.
-    __["pOut"]("Ascending to " +ap, true).
+
+    __["pOut"]("Ascending to " + ap, true).
 
     return true.
   }
@@ -55,44 +56,21 @@
     parameter mission.
     local target_apo is mission["get_data"]("target_altitude").
     local inc is mission["get_data"]("target_inclination"). // orbit inclination
-    local V_orb is sqrt( constant():G * body:mass / ( target_apo + body:radius)). // orbital velocity
-    LOCK pit TO 90 - 90*(altitude/body:atm:height * 0.85)^(0.75).
-    local steer is heading(90,90).
-    LOCK steering to steer.
 
     if ship:apoapsis > target_apo {
       lock throttle to (target_apo - ship:apoapsis) / 2000.
     }
     if mission["get_data"]("ascending") {
-      if ship:altitude > body:atm:height {
-        lock throttle to 0.
-        lock steering to prograde.
-    } else {
-        set az_orb to arcsin ( cos(inc) / cos(ship:latitude)).
-        if (abs(ship:obt:inclination - inc) < 0.1) {
-            set steer to heading(az_orb, pit).
-        } else {
-            // project desired orbit onto surface heading
-            set az_orb to arcsin ( cos(inc) / cos(ship:latitude)).
-            // create desired orbit velocity vector
-            set orb_vel to heading(az_orb, 0)*v(0, 0, V_orb).
-
-            // find horizontal component of current orbital velocity vector
-            set orb_vel_h to ship:velocity:orbit - vdot(ship:velocity:orbit, up:vector:normalized)*up:vector:normalized.
-
-            // calculate difference between desired orbital vector and current (this is the direction we go)
-            set vel_corr to orb_vel - orb_vel_h.
-
-            // project the velocity correction vector onto north and east directions
-            set vel_n to vdot(vel_corr, ship:north:vector:normalized).
-            set vel_e to vdot(vel_corr, heading(90,0):vector:normalized).
-            // calculate compass heading
-            set az_corr to arctan2(vel_e, vel_n).
-
-            // update our steering
-            set steer to heading(az_corr, pit).
+        if latIncOk(ship:latitude, inc) {
+            set az_corr to launchBearing(inc, target_apo).
+        } ELSE {
+            if inc < 90 { set az_corr to 90. }
+            else { set az_corr to 270. }
         }
-    }
+        // update our steering
+        local pAlt is mission["get_data"]("pitch_alt").
+        local cAlt is mission["get_data"]("curve_alt").
+        set LAUNCH_VEC to heading(az_corr, launchPitch(pAlt,cAlt)).
     } else if ship:airspeed > 75 {
       __["pOut"]("Steering locked to gravity turn", true).
       mission["add_data"]("ascending", true, true).
@@ -183,8 +161,8 @@
 
   FUNCTION azimuth
   {
-    PARAMETER i.
-    IF latIncOk(LATITUDE,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(LATITUDE))). }
+    PARAMETER i, lat is ship:latitude.
+    IF latIncOk(lat,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(lat))). }
     RETURN -1.
   }
 
@@ -199,17 +177,41 @@
     RETURN v_rot.
   }
 
+  FUNCTION launchPitch
+  {
+      PARAMETER pAtl, cAlt.
+      IF ALT:RADAR < pAlt { RETURN 90. }
+      RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/cAlt)),45-VERTICALSPEED))).
+  }
+
+  FUNCTION launchBearing
+  {
+      PARAMETER inc, ap.
+      LOCAL lat IS SHIP:LATITUDE.
+      LOCAL vo IS SHIP:VELOCITY:ORBIT.
+      LOCAL lvo IS sqrt( constant():G * body:mass / ( ap + body:radius)).
+      IF (inc > 0 AND ABS(lat) < 90 AND MIN(inc,180 - inc) >= ABS(lat)) {
+        LOCAL az IS ARCSIN( COS(inc) / COS(lat) ).
+        IF NOT (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)) { SET az TO mAngle(180 - az). }
+        IF vo:MAG >= lvo { RETURN az. }
+        LOCAL x IS (lvo * SIN(az)) - VDOT(vo,HEADING(90,0):VECTOR).
+        LOCAL y IS (lvo * COS(az)) - VDOT(vo,HEADING(0,0):VECTOR).
+        RETURN mAngle(90 - ARCTAN2(y, x)).
+      } ELSE {
+        IF inc < 90 { RETURN 90. }
+        ELSE { RETURN 270. }
+      }
+  }
+
   FUNCTION launchAzimuth
   {
-    PARAMETER planet, az, ap.
+    PARAMETER az, ap.
 
-    LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
-    LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
+    LOCAL v_orbit IS SQRT(BODY:MU/(BODY:RADIUS + ap)).
+    LOCAL v_rot to SHIP:GEOPOSITION:ALTITUDEVELOCITY(ALTITUDE):ORBIT:MAG.
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
     LOCAL raz IS __["mAngle"](90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
-    __["pOut"]("Input azimuth: " + ROUND(az,2)).
-    __["pOut"]("Output azimuth: " + ROUND(raz,2)).
     RETURN raz.
   }
 
@@ -235,7 +237,7 @@
     PARAMETER ap,i,lan,az.
 
     LOCAL eta IS 0.
-    SET az TO launchAzimuth(BODY,az,ap).
+    SET az TO launchAzimuth(az,ap).
     LOCAL eta_to_AN IS etaToOrbitPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
     LOCAL eta_to_DN IS etaToOrbitPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
@@ -261,7 +263,7 @@
   FUNCTION warpToLaunch
   {
     PARAMETER launch_time.
-    IF launch_time - TIME:SECONDS > 5 {
+    IF launch_time - TIME:SECONDS > 50 {
       __["pOut"]("Waiting for orbit plane to pass overhead.").
       WAIT 5.
       __["doWarp"](launch_time).
