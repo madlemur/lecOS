@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 {
-    __["pOut"]("LEC OPS_LOADER v$$VER_NUM$$.$$REL_NUM$$.$$PAT_NUM$$ $$BLD_NUM$$").
+    __["pOut"]("LEC OPS_LOADER v%VERSION_NUMBER%").
     local sName is __["padRep"](0,"_",SHIP:NAME).
 
     // check for connection to KSC for archive volume access if no instructions stored

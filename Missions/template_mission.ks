@@ -4,7 +4,7 @@
     local event_lib is import("event_lib.ks").
     local launcher is import("launcher.ks").
 
-    local template_mission is lexicon(
+    local t_m is lexicon(
         "sequence", list(
           "preflight", preflight@,
           "launch", launch@,
@@ -26,29 +26,34 @@
     function preflight {
       parameter mission.
       set ship:control:pilotmainthrottle to 0.
-      __["pOut"]("Launch parameters: " + template_mission["data"]["target_altitude"] + ":" + template_mission["data"]["target_inclination"] + ":" + template_mission["data"]["target_lan"]).
+      __["pOut"]("Launch parameters: " + t_m["data"]["target_altitude"] + ":" + t_m["data"]["target_inclination"] + ":" + t_m["data"]["target_lan"]).
       set launchDetails to launcher["calcLaunchDetails"](
-          template_mission["data"]["target_altitude"],
-          template_mission["data"]["target_inclination"],
-          template_mission["data"]["target_lan"]
+          t_m["data"]["target_altitude"],
+          t_m["data"]["target_inclination"],
+          t_m["data"]["target_lan"]
       ).
-      __["setTime"]("launch", TIME:SECONDS + launchDetails[1]).
-      mission["add_data"]("launch_azimuth", launchDetails[0], true).
-      if launchDetails[1] > 60
+      __["setTime"]("launch", launchDetails[1]).
+      launcher["launch_init"](
+        t_m["data"]["target_altitude"],
+        t_m["data"]["target_inclination"],
+        launchDetails[0],
+        t_m["data"]["pitch_alt"],
+        t_m["data"]["curve_alt"]
+      ).
+      if launchDetails[1] > TIME:SECONDS + 60
         __["doWarp"](launchDetails[1]-10).
-      if launcher["launch"](template_mission["data"]["target_altitude"], launchDetails[0], mission) {
-        launcher["start_countdown"](5, mission).
+      if launcher["launch"](t_m["data"]["target_altitude"], launchDetails[0]) {
+        launcher["start_countdown"](5).
         mission["next"]().
       } else {
         __["pOut"]("Unable to launch, mission terminated.", true).
         mission["terminate"]().
       }
-
     }
 
     function launch {
       parameter mission.
-      if launcher["countdown"](mission) <= 0 {
+      if launcher["countdown"]() >= 0 {
         mission["add_event"]("staging", event_lib["staging"]).
         mission["next"]().
       }
@@ -56,23 +61,23 @@
 
     function ascent {
       parameter mission.
-      if launcher["ascent_complete"](mission) {
+      if launcher["ascent_complete"]() {
           mission["next"]().
         }
     }
 
     function circularize {
       parameter mission.
-      if template_mission:haskey("circ") {
+      if t_m:haskey("circ") {
         if launcher["circularized"]() {
-          template_mission:remove("circ").
+          t_m:remove("circ").
           mission["next"]().
         }
       } else {
         launcher["circularize"]().
-        set template_mission["circ"] to true.
+        set t_m["circ"] to true.
       }
     }
 
-    export(template_mission).
+    export(t_m).
 }

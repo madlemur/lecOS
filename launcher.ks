@@ -1,38 +1,52 @@
+@LAZYGLOBAL OFF.
+__["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
 {
   local launcher is lex(
-    "countdown", countdown@:bind(-1),
-    "start_countdown", countdown@,
+    "countdown", cdn@:bind(-1),
+    "start_countdown", cdn@,
+    "launch_init", l_i@,
     "launch", launch@,
     "ascent_complete", ascent_complete@,
-    "circularize", circularize@,
-    "circularized", circularized@,
-    "calcLaunchDetails", calcLaunchDetails@
+    "circularize", cz@,
+    "circularized", czd@,
+    "calcLaunchDetails", calcld@
   ).
 
-  local HALF_LAUNCH is 145.
-  local steer is import("steering.ks").
-  LOCAL LAUNCH_VEC is UP:VECTOR.
+  local H_L is 145.
+  LOCAL L_V is UP:VECTOR.
 
-  function countdown {
-    parameter count, m.
+  local steer is import("steering.ks").
+
+  function cdn
+  {
+    parameter c.
     local ttl is FLOOR(__["diffTime"]("launch")).
-    if count < 0 {
-      local i is m["get_data"]("count") + count.
-      if __["diffTime"]("launch") < i {
-        if ttl >= 0 { __["hudMsg"]( "T minus " + ttl + "s" , 1, 1, 25, white, true). }
-        m["add_data"]("count", ttl).
-        return ttl.
+    if c < 0 {
+      local i is launcher["count"] + c.
+      if -ttl < i {
+        if ttl <= 0 { __["hudMsg"]( "T " + ttl + "s" , 1, 1, 25, white, true). }
+        SET launcher["count"] to -ttl.
       }
-      return i - count.
+      return launcher["count"].
     } else {
-        m["add_data"]("count", min(count, ttl)).
-        if ttl <= count { __["hudMsg"]( "T minus " + count + "s" , 1, 1, 25, white, true). }
-        return count.
+        SET launcher["count"] to min(c, -ttl).
+        if -ttl >= c { __["hudMsg"]( "T " + c + "s" , 1, 1, 25, white, true). }
+        return c.
     }
   }
 
-  function launch {
-    parameter ap, az, m.
+  function l_i
+  {
+    parameter ap, az, inc, p_a, c_a.
+    SET launcher["target_altitude"] to ap.
+    SET launcher["target_inclination"] to inc.
+    SET launcher["pitch_alt"] to p_a.
+    SET launcher["curve_alt"] to c_a.
+  }
+
+  function launch
+  {
+    parameter ap, az.
 
     // Set up launch parameters
     if ap < (1.05 * body:atm:height) {
@@ -41,10 +55,10 @@
       return false.
     }
 
-    m["add_data"]("ascending", false, true).
-    m["add_data"]("transferring", false, true).
+    SET launcher["ascending"] to false.
+    SET launcher["transferring"] to false.
 
-    steer["steerTo"]({ RETURN LAUNCH_VEC }).
+    steer["steerTo"]({ RETURN L_V. }).
     lock throttle to 1.
 
     __["pOut"]("Ascending to " + ap, true).
@@ -52,15 +66,15 @@
     return true.
   }
 
-  function ascent_complete {
-    parameter m.
-    local target_apo is m["get_data"]("target_altitude").
-    local inc is m["get_data"]("target_inclination"). // orbit inclination
+  function ascent_complete
+  {
+    local target_apo is launcher["target_altitude"].
+    local inc is launcher["target_inclination"]. // orbit inclination
 
     if ship:apoapsis > target_apo {
       lock throttle to (target_apo - ship:apoapsis) / 2000.
     }
-    if m["get_data"]("ascending") {
+    if launcher["ascending"] {
         if latIncOk(ship:latitude, inc) {
             set az_corr to launchBearing(inc, target_apo).
         } ELSE {
@@ -68,12 +82,12 @@
             else { set az_corr to 270. }
         }
         // update our steering
-        local pAlt is m["get_data"]("pitch_alt").
-        local cAlt is m["get_data"]("curve_alt").
-        set LAUNCH_VEC to heading(az_corr, launchPitch(pAlt,cAlt)).
+        local pAlt is launcher["pitch_alt"].
+        local cAlt is launcher["curve_alt"].
+        set L_V to heading(az_corr, launchPitch(pAlt,cAlt)):FOREVECTOR.
     } else if ship:airspeed > 75 {
       __["pOut"]("Steering locked to gravity turn", true).
-      m["add_data"]("ascending", true, true).
+      SET launcher["ascending"] to true.
     }
     if ship:apoapsis > target_apo * 0.95 and altitude > ship:apoapsis * 0.90 {
       return true.
@@ -81,14 +95,16 @@
     return false.
   }
 
-  function ef {
+  function ef
+  {
     parameter ves.
 
     return vcrs(ves:up:vector, ves:north:vector).
   }
   // Return eta:apoapsis but with times behind you
   // rendered as negative numbers in the past:
-  function eta_ap_with_neg {
+  function eta_ap_with_neg
+  {
     local ret_val is eta:apoapsis.
     if ret_val > ship:obt:period / 2 {
       set ret_val to ret_val - ship:obt:period.
@@ -96,7 +112,8 @@
     return ret_val.
   }
 
-  function cov {
+  function cov
+  {
     local vo is ship:velocity:orbit.
     local east is ef(ship).
 
@@ -108,22 +125,25 @@
     return __["mAngle"](result).
   }
 
-  function circularize {
+  function cz
+  {
     lock throttle to circ_thrott().
     lock steering to heading(cov(), -(eta_ap_with_neg()/3)).
   }
 
-  function circ_thrott {
-	if abs(steeringmanager:yawerror) < 2 and
-		 abs(steeringmanager:pitcherror) < 2 and
-		 abs(steeringmanager:rollerror) < 2 {
-			 return 0.02 + (30*ship:obt:eccentricity).
-	} else {
-		return 0.
-	}
+  function circ_thrott
+  {
+  	if abs(steeringmanager:yawerror) < 2 and
+  		 abs(steeringmanager:pitcherror) < 2 and
+  		 abs(steeringmanager:rollerror) < 2 {
+  			 return 0.02 + (30*ship:obt:eccentricity).
+  	} else {
+  		return 0.
+  	}
   }
 
-  function circularized {
+  function czd
+  {
     if (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
       unlock steering.
       unlock throttle.
@@ -132,10 +152,10 @@
     return false.
   }
 
-  FUNCTION changeHALF_LAUNCH
+  FUNCTION changeH_L
   {
     PARAMETER h.
-    IF h > 0 { SET HALF_LAUNCH TO h. }
+    IF h > 0 { SET H_L TO h. }
   }
 
   FUNCTION latIncOk
@@ -144,7 +164,7 @@
     RETURN (i > 0 AND ABS(lat) < 90 AND MIN(i,180-i) >= ABS(lat)).
   }
 
-  FUNCTION etaToOrbitPlane
+  FUNCTION etaop
   {
     PARAMETER is_AN, planet, orb_lan, i, ship_lat, ship_lng.
 
@@ -159,7 +179,7 @@
     RETURN eta.
   }
 
-  FUNCTION azimuth
+  FUNCTION azm
   {
     PARAMETER i, lat is ship:latitude.
     IF latIncOk(lat,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(lat))). }
@@ -179,7 +199,7 @@
 
   FUNCTION launchPitch
   {
-      PARAMETER pAtl, cAlt.
+      PARAMETER pAlt, cAlt.
       IF ALT:RADAR < pAlt { RETURN 90. }
       RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/cAlt)),45-VERTICALSPEED))).
   }
@@ -192,11 +212,11 @@
       LOCAL lvo IS sqrt( constant():G * body:mass / ( ap + body:radius)).
       IF (inc > 0 AND ABS(lat) < 90 AND MIN(inc,180 - inc) >= ABS(lat)) {
         LOCAL az IS ARCSIN( COS(inc) / COS(lat) ).
-        IF NOT (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)) { SET az TO mAngle(180 - az). }
+        IF NOT (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)) { SET az TO __["mAngle"](180 - az). }
         IF vo:MAG >= lvo { RETURN az. }
         LOCAL x IS (lvo * SIN(az)) - VDOT(vo,HEADING(90,0):VECTOR).
         LOCAL y IS (lvo * COS(az)) - VDOT(vo,HEADING(0,0):VECTOR).
-        RETURN mAngle(90 - ARCTAN2(y, x)).
+        RETURN __["mAngle"](90 - ARCTAN2(y, x)).
       } ELSE {
         IF inc < 90 { RETURN 90. }
         ELSE { RETURN 270. }
@@ -215,7 +235,7 @@
     RETURN raz.
   }
 
-  FUNCTION noPassLaunchDetails
+  FUNCTION npld
   {
     PARAMETER ap,i,lan.
 
@@ -226,48 +246,39 @@
     IF i = 0 OR i = 180 { RETURN LIST(az,0). }
 
     LOCAL eta IS 0.
-    IF LATITUDE > 0 { SET eta TO etaToOrbitPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
-    ELSE { SET eta TO etaToOrbitPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
-    LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
+    IF LATITUDE > 0 { SET eta TO etaop(TRUE,BODY,lan,i,lat,LONGITUDE). }
+    ELSE { SET eta TO etaop(FALSE,BODY,lan,i,-lat,LONGITUDE). }
+    LOCAL launch_time IS TIME:SECONDS + eta - H_L.
     RETURN LIST(az,launch_time).
   }
 
-  FUNCTION launchDetails
+  FUNCTION ld
   {
     PARAMETER ap,i,lan,az.
 
     LOCAL eta IS 0.
     SET az TO launchAzimuth(az,ap).
-    LOCAL eta_to_AN IS etaToOrbitPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
-    LOCAL eta_to_DN IS etaToOrbitPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
+    LOCAL eta_to_AN IS etaop(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
+    LOCAL eta_to_DN IS etaop(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
-    IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
-    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < HALF_LAUNCH) AND eta_to_DN >= HALF_LAUNCH {
+    IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN npld(ap,i,lan). }
+    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < H_L) AND eta_to_DN >= H_L {
       SET eta TO eta_to_DN.
       SET az TO __["mAngle"](180 - az).
-    } ELSE IF eta_to_AN >= HALF_LAUNCH { SET eta TO eta_to_AN. }
+    } ELSE IF eta_to_AN >= H_L { SET eta TO eta_to_AN. }
     ELSE { SET eta TO eta_to_AN + BODY:ROTATIONPERIOD. }
-    LOCAL launch_time IS TIME:SECONDS + eta - HALF_LAUNCH.
+    LOCAL launch_time IS TIME:SECONDS + eta - H_L.
     RETURN LIST(az,launch_time).
   }
 
-  FUNCTION calcLaunchDetails
+  FUNCTION calcld
   {
     PARAMETER ap,i,lan.
 
-    LOCAL az IS azimuth(i).
-    IF az < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
-    ELSE { RETURN launchDetails(ap,i,lan,az). }
+    LOCAL az IS azm(i).
+    IF az < 0 { RETURN npld(ap,i,lan). }
+    ELSE { RETURN ld(ap,i,lan,az). }
   }
 
-  FUNCTION warpToLaunch
-  {
-    PARAMETER launch_time.
-    IF launch_time - TIME:SECONDS > 50 {
-      __["pOut"]("Waiting for orbit plane to pass overhead.").
-      WAIT 5.
-      __["doWarp"](launch_time).
-    }
-  }
   export(launcher).
 }

@@ -1,3 +1,5 @@
+@LAZYGLOBAL OFF.
+__["pOut"]("LEC STEERING v%VERSION_NUMBER%").
 {
     local steer is lex(
         "isSteerOn", iso@,
@@ -27,37 +29,35 @@
 
     FUNCTION st
     {
-        PARAMETER m, fore IS { RETURN FACING:VECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
+        PARAMETER fore IS { RETURN FACING:VECTOR. }, top IS { RETURN FACING:TOPVECTOR. }.
         IF NOT S_O { __["pOut"]("Steering engaged."). }
         SET S_O TO TRUE.
         LOCK STEERING TO LOOKDIRUP(fore(),top()).
-        m["setTime"]("STEER").
+        __["setTime"]("STEER").
     }
 
     FUNCTION ss
     {
-        PARAMETER m, pro IS TRUE.
-        IF pro { st(m, { RETURN SRFPROGRADE:VECTOR. }). }
-        ELSE { st(m, { RETURN SRFRETROGRADE:VECTOR. }). }
+        PARAMETER pro IS TRUE.
+        IF pro { st({ RETURN SRFPROGRADE:VECTOR. }). }
+        ELSE { st({ RETURN SRFRETROGRADE:VECTOR. }). }
     }
 
     FUNCTION sb
     {
-        PARAMETER m, pro IS TRUE.
-        IF pro { st(m, { RETURN PROGRADE:VECTOR. }). }
-        ELSE { st(m, { RETURN RETROGRADE:VECTOR. }). }
+        PARAMETER pro IS TRUE.
+        IF pro { st({ RETURN PROGRADE:VECTOR. }). }
+        ELSE { st({ RETURN RETROGRADE:VECTOR. }). }
     }
 
     FUNCTION sn
     {
-        PARAMETER m.
-        st(m, { RETURN VCRS(VELOCITY:ORBIT,-BODY:POSITION). }, { RETURN SUN:POSITION. }).
+        st({ RETURN VCRS(VELOCITY:ORBIT,-BODY:POSITION). }, { RETURN SUN:POSITION. }).
     }
 
     FUNCTION su
     {
-        PARAMETER m.
-        st(m, { RETURN SUN:POSITION. }).
+        st({ RETURN SUN:POSITION. }).
     }
 
     FUNCTION sv
@@ -68,8 +68,8 @@
 
     FUNCTION sk
     {
-        PARAMETER m, aoa IS 1, p IS 4, t IS 60.
-        IF  m["diffTime"]("STEER") <= 0.1 { RETURN FALSE. }
+        PARAMETER aoa IS 1, p IS 4, t IS 60.
+        IF  __["diffTime"]("STEER") <= 0.1 { RETURN FALSE. }
         IF NOT STEERINGMANAGER:ENABLED { __["hudMsg"]("ERROR: Steering Manager not enabled!"). }
 
         IF VANG(STEERINGMANAGER:TARGET:VECTOR,FACING:VECTOR) < aoa AND
@@ -77,7 +77,7 @@
             __["pOut"]("Steering aligned.").
             RETURN TRUE.
         }
-        IF m["diffTime"]("STEER") > t {
+        IF __["diffTime"]("STEER") > t {
             __["pOut"]("Steering alignment timed out.").
             RETURN TRUE.
         }
@@ -86,11 +86,10 @@
 
     FUNCTION ds
     {
-        PARAMETER m.
         __["pOut"]("Damping steering.").
         LOCAL cur_f IS FACING:VECTOR.
-        st(m, { RETURN cur_f. }).
-        WAIT UNTIL sk(m).
+        st({ RETURN cur_f. }).
+        WAIT UNTIL sk().
         so().
     }
     export(steer).

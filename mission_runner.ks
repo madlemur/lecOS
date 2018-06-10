@@ -3,7 +3,7 @@
 // Kenneth Cummins
 // http://youtube.com/gisikw
 @LAZYGLOBAL OFF.
-__["pOut"]("LEC MISSION_RUNNER ").
+__["pOut"]("LEC MISSION_RUNNER v%VERSION_NUMBER%").
 {
   function mission_runner {
     parameter sq is list(), events is lex(), m_d is lex().
@@ -50,9 +50,11 @@ __["pOut"]("LEC MISSION_RUNNER ").
     function u_r {
       parameter n.
       s_st().
-      __["store"](sq[2 * n], "mission.runmode").
-      set rm to n.
-      l_st().
+      if sq:length >= (2*n) {
+        __["store"](sq[2 * n], "mission.runmode").
+        set rm to n.
+        l_st().
+      }
     }
 
     function s_st {
@@ -137,7 +139,10 @@ __["pOut"]("LEC MISSION_RUNNER ").
 
     // Return the current runmode (read-only)
     function r_r {
-      return sq[rm * 2].
+      if sq:length <= (rm*2) {
+        return sq[rm * 2].
+      }
+      return false.
     }
 
     // Add a key/value pair

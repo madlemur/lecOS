@@ -128,7 +128,7 @@
     {
       PARAMETER n.
       IF NOT TIMES:HASKEY(n) {
-          RETURN 0.
+          RETURN FALSE.
       } ELSE {
           RETURN TIME:SECONDS - TIMES[n].
       }
@@ -157,11 +157,13 @@
     FUNCTION dw
     {
       PARAMETER wt, s_f IS { RETURN FALSE. }.
-      po("Engaging time warp.").
-      WARPTO(wt).
-      WAIT UNTIL s_f() OR wt < TIME:SECONDS.
-      kw().
-      po("Time warp over.").
+      if wt - TIME:SECONDS > 30 {
+        po("Engaging time warp.").
+        WARPTO(wt).
+        WAIT UNTIL s_f() OR wt < TIME:SECONDS.
+        kw().
+        po("Time warp over.").
+      }
     }
     // Enumerate and manage kOS volumes
     FUNCTION sv
