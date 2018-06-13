@@ -1,5 +1,4 @@
 (*boot.ks*)
-+ *bool* `init`()
 + *lexicon* `import`(*filename*)
 + *void* `export`(*lexicon*)
 + *void* `phud`(*string*, *delay*=`3`, *position*=`2`, *size*=`40`, *color*=`YELLOW`, *echo_console*=`FALSE`)
