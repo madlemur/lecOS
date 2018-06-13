@@ -42,6 +42,7 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
     SET launcher["target_inclination"] to inc.
     SET launcher["pitch_alt"] to p_a.
     SET launcher["curve_alt"] to c_a.
+    SET launcher["launch_an"] to (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)).
   }
 
   function launch
@@ -70,6 +71,7 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
   {
     local target_apo is launcher["target_altitude"].
     local inc is launcher["target_inclination"]. // orbit inclination
+    local az_corr is 90.
 
     if ship:apoapsis > target_apo {
       lock throttle to (target_apo - ship:apoapsis) / 2000.
@@ -84,6 +86,7 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
         // update our steering
         local pAlt is launcher["pitch_alt"].
         local cAlt is launcher["curve_alt"].
+        __["hudMsg"]("AZ " + az_corr + " for INC "  + inc).
         set L_V to heading(az_corr, launchPitch(pAlt,cAlt)):FOREVECTOR.
     } else if ship:airspeed > 75 {
       __["pOut"]("Steering locked to gravity turn", true).
@@ -168,22 +171,21 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
   {
     PARAMETER is_AN, planet, orb_lan, i, ship_lat, ship_lng.
 
-    LOCAL eta IS -1.
+    LOCAL etan IS -1.
     IF latIncOk(ship_lat,i) {
       LOCAL rel_lng IS ARCSIN(TAN(ship_lat)/TAN(i)).
       IF NOT is_AN { SET rel_lng TO 180 - rel_lng. }
       LOCAL g_lan IS __["mAngle"](orb_lan + rel_lng - planet:ROTATIONANGLE).
       LOCAL node_angle IS __["mAngle"](g_lan - ship_lng).
-      SET eta TO (node_angle / 360) * planet:ROTATIONPERIOD.
+      SET etan TO (node_angle / 360) * planet:ROTATIONPERIOD.
     }
-    RETURN eta.
+    RETURN etan.
   }
 
   FUNCTION azm
   {
     PARAMETER i, lat is ship:latitude.
-    IF latIncOk(lat,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(lat))). }
-    RETURN -1.
+    RETURN __["mAngle"](ARCSIN(COS(i) / COS(lat))).
   }
 
   FUNCTION planetSurfaceSpeedAtLat
@@ -209,10 +211,10 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
       PARAMETER inc, ap.
       LOCAL lat IS SHIP:LATITUDE.
       LOCAL vo IS SHIP:VELOCITY:ORBIT.
-      LOCAL lvo IS sqrt( constant():G * body:mass / ( ap + body:radius)).
-      IF (inc > 0 AND ABS(lat) < 90 AND MIN(inc,180 - inc) >= ABS(lat)) {
-        LOCAL az IS ARCSIN( COS(inc) / COS(lat) ).
-        IF NOT (az < 90 OR az > 270 OR ((az = 90 OR az = 270) AND LATITUDE < 0)) { SET az TO __["mAngle"](180 - az). }
+      LOCAL lvo IS sqrt( body:MU / ( ap + body:radius)).
+      IF latIncOk(lat,inc) {
+        LOCAL az IS azm(inc).
+        IF NOT launcher["launch_an"] { SET az TO __["mAngle"](180 - az). }
         IF vo:MAG >= lvo { RETURN az. }
         LOCAL x IS (lvo * SIN(az)) - VDOT(vo,HEADING(90,0):VECTOR).
         LOCAL y IS (lvo * COS(az)) - VDOT(vo,HEADING(0,0):VECTOR).
@@ -256,26 +258,31 @@ __["pOut"]("LEC LAUNCHER v%VERSION_NUMBER%").
   {
     PARAMETER ap,i,lan,az.
 
-    LOCAL eta IS 0.
-    SET az TO launchAzimuth(az,ap).
+    LOCAL etap IS 0.
+    LOCAL laz IS launchAzimuth(az,ap).
     LOCAL eta_to_AN IS etaop(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
     LOCAL eta_to_DN IS etaop(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
-    IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN npld(ap,i,lan). }
-    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < H_L) AND eta_to_DN >= H_L {
-      SET eta TO eta_to_DN.
-      SET az TO __["mAngle"](180 - az).
-    } ELSE IF eta_to_AN >= H_L { SET eta TO eta_to_AN. }
-    ELSE { SET eta TO eta_to_AN + BODY:ROTATIONPERIOD. }
-    LOCAL launch_time IS TIME:SECONDS + eta - H_L.
-    RETURN LIST(az,launch_time).
+    IF eta_to_DN < 0 AND eta_to_AN < 0 {
+      RETURN npld(ap,i,lan).
+    } ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < H_L) AND eta_to_DN >= H_L {
+      SET etap TO eta_to_DN.
+      SET laz TO __["mAngle"](180 - laz).
+    } ELSE IF eta_to_AN >= H_L {
+      SET etap TO eta_to_AN.
+    } ELSE {
+      SET etap TO eta_to_AN + BODY:ROTATIONPERIOD.
+    }
+    LOCAL launch_time IS TIME:SECONDS + etap - H_L.
+    RETURN LIST(laz,launch_time).
   }
 
   FUNCTION calcld
   {
     PARAMETER ap,i,lan.
 
-    LOCAL az IS azm(i).
+    LOCAL az IS -1.
+    if latIncOk(ship:latitude, i) { set az to azm(i). }
     IF az < 0 { RETURN npld(ap,i,lan). }
     ELSE { RETURN ld(ap,i,lan,az). }
   }

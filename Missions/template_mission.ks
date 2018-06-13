@@ -35,8 +35,8 @@
       __["setTime"]("launch", launchDetails[1]).
       launcher["launch_init"](
         t_m["data"]["target_altitude"],
-        t_m["data"]["target_inclination"],
         launchDetails[0],
+        t_m["data"]["target_inclination"],
         t_m["data"]["pitch_alt"],
         t_m["data"]["curve_alt"]
       ).

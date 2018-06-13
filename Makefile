@@ -9,6 +9,8 @@ CRAFTSTAGEDIR = $(STAGEDIR)/craft
 LIBINSTALLDIR = $(INSTALLDIR)/lib
 LIBSTAGEDIR = $(STAGEDIR)/lib
 
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+
 files := $(wildcard *.ks)
 missions := $(notdir $(wildcard Missions/*.ks))
 boots := $(notdir $(wildcard boot/*.ks))
@@ -33,19 +35,19 @@ clean :
 	rm $(packed) $(packedmissions) $(packedboot) $(packedcrafts) $(packedlibs);
 
 $(STAGEDIR)/%.ksp : %.ks
-	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/' > $@;
 
 $(MISSIONSTAGEDIR)/%.ksp : %.ks
-	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/'  > $@;
 
 $(BOOTSTAGEDIR)/%.ksp : %.ks
-	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/'  > $@;
 
 $(CRAFTSTAGEDIR)/%.ksp : %.ks
-	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/'  > $@;
 
 $(LIBSTAGEDIR)/%.ksp : %.ks
-	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/'  > $@;
 
 $(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
 	cp $< '$@';
