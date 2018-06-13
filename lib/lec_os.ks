@@ -17,14 +17,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
     )
     global import is {
         parameter n.
-        local f is n.
-        if f:endswith(".ks") {
-            set f to f:substring(0, f:length - 3).
-        }
-        if f:contains("/") {
-            local fp is f:split("/").
-            set f to fp[fp:length -1].
-        }
+        local f is libname(n).
         if d:haskey(f) {
             return d[f].
         }
@@ -44,8 +37,28 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
     }.
     global export is {
         parameter v.
+        if v:haskey("init") {
+            v["init"]().
+        }
         set d[s:pop()] to v.
     }.
+    global isImported is {
+        parameter n.
+        local f is libname(n).
+        return d:haskey(f).
+    }.
+    function libname {
+        parameter n.
+        local f is n.
+        if f:endswith(".ks") {
+            set f to f:substring(0, f:length - 3).
+        }
+        if f:contains("/") {
+            local fp is f:split("/").
+            set f to fp[fp:length -1].
+        }
+        return f.
+    }
     global phud is {
         PARAMETER t, del is 3, pos is 2, s IS 40, c IS YELLOW, ec is FALSE.
         HUDTEXT(t, del, pos, s, c, ec).
