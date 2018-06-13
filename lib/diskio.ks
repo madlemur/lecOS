@@ -1,12 +1,21 @@
 @LAZYGLOBAL OFF.
 PRINT("LEC DISKIO v%VERSION_NUMBER%").
 {
+
+    local self is lexicon(
+        "listVolumes", listVolumes@,
+        "findFile", findFile@,
+        "findSpace", findSpace@,
+        "loadFile", loadFile@,
+        "delFile", delFile@,
+        "runFile", runFile@
+    ).
+    
     FUNCTION listVolumes {
         return list(CORE:CURRENTVOLUME:NAME).
     }
 
-    FUNCTION findFile
-    {
+    FUNCTION findFile {
         PARAMETER fn.
         LOCAL lfp IS CORE:CURRENTVOLUME:NAME + ":/" + fn.
         IF EXISTS(lfp) { RETURN lfp. }
@@ -24,14 +33,14 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 
     FUNCTION loadFile {
         PARAMETER fn, loud IS TRUE.
-        LOCAL lfp IS findFile(fn).
+        LOCAL lfp IS self["findFile"](fn).
         IF NOT lfp = "" { RETURN lfp. }
 
         LOCAL afp IS "0:/" + fn.
         LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
         IF loud { pOut("Copying from: " + afp + " (" + afs + " bytes)"). }
 
-        SET lfp TO findSpace(fn, afs).
+        SET lfp TO self["findSpace"](fn, afs).
         if lfp = "" {
             pout("ERROR: unable to copy file " + fn).
             RETURN "".
@@ -44,8 +53,22 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 
     FUNCTION delFile {
         PARAMETER fn.
-        LOCAL lfp IS findFile(fn).
+        LOCAL lfp IS self["findFile"](fn).
         IF not lfp = "" { DELETEPATH(lfp). }
     }
 
+    FUNCTION runFile {
+        PARAMETER fn, delafter is FALSE.
+        local lfn is self["findFile"](fn).
+        if not lfn = "" {
+            local result IS RUNPATH(lfn).
+            if delafter {
+                self["delFile"](lfn).
+            }
+            return result.
+        }
+        return "".
+    }
+
+    export(self).
 }

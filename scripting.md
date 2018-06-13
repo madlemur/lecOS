@@ -31,14 +31,12 @@
 + *filepath* `findfile`(*filename*)
 + *filepath* `findspace`(*filename*, *bytes*)
 
-**times** (*times.ks*)
-+ *bool* `init`()
+**time** (*time.ks*)
 + *void* `setTime`(*timename*, *time*=`TIME:SECONDS`)
 + *seconds* `diffTime`(*timename*)
 + *seconds* `stageTime`()
 
 **text** (*text.ks*)
-+ *bool* `init`()
 + *string* `formatTS`(*seconds_UT*, *seconds_from*=`TIME:SECONDS`)
 + *string* `formatMET`()
 

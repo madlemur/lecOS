@@ -2,7 +2,9 @@
 PRINT("LEC VOLMGT v%VERSION_NUMBER%").
 {
     LOCAL VOLUME_NAMES is LIST().
-
+    LOCAL self is lexicon(
+        "init", init@
+    ).
     FUNCTION init {
         IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO "Disk0". }
         LOCAL cvn IS CORE:CURRENTVOLUME:NAME.
@@ -33,8 +35,7 @@ PRINT("LEC VOLMGT v%VERSION_NUMBER%").
         return VOLUME_NAMES.
     }
 
-    FUNCTION findFile
-    {
+    FUNCTION findFile {
         PARAMETER fn.
         FOR vn IN VOLUME_NAMES {
             LOCAL lfp IS vn + ":/" + fn.
@@ -53,4 +54,7 @@ PRINT("LEC VOLMGT v%VERSION_NUMBER%").
         pout "ERROR: no room for " + fn + " (" + mfs + "b)!".
         RETURN "".
     }
+
+    export(self).
+
 }
