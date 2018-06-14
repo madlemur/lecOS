@@ -1,16 +1,30 @@
 @LAZYGLOBAL OFF.
 PRINT("LEC BOOTLOADER v%VERSION_NUMBER%").
 {
-    IF HOMECONNECTION:ISCONNECTED AND EXISTS("0:/lib/lec_os.ks") {
-        PRINT("Connected to archive, downloading LEC_OS.").
-        COPYPATH("0:/lib/lec_os.ks", "1:/lib/lec_os.ks").
+    LOCAL OSFILE is "/lib/lec_os.ks".
+    local waituntil is 0.
+    IF NOT EXISTS("1:"+OSFILE) {
+        set waituntil to 0.
+        UNTIL HOMECONNECTION:ISCONNECTED {
+            IF waituntil < TIME:SECONDS {
+                pout("Waiting for connection to archive.").
+                set waituntil to TIME:SECONDS + 10.
+            }
+            WAIT 0.
+        }
+        IF EXISTS("0:"+OSFILE) {
+            pout("Copying LEC_OS from archive.").
+            COPYPATH("0:"+OSFILE, "1:"+OSFILE).
+        }
     }
-    IF EXISTS("1:/lib/lec_os.ks") {
-        RUNONCEPATH("1:/lib/lec_os.ks").
+    IF EXISTS("1:"+OSFILE) {
+        RUNONCEPATH("1:"+OSFILE).
     } ELSE {
         PRINT "Unable to load LEC_OS. Shutting down.".
         SHUTDOWN.
     }
+
+    LOCAL SHIPFILE is "0:/"+SAFENAME+".ops.ks".
     LOCAL OPSFILE is "1:/operations.ks".
     LOCAL RESUME_OPS is"1:/resume.ops.ks".
     IF EXISTS(RESUME_OPS) {
@@ -18,7 +32,7 @@ PRINT("LEC BOOTLOADER v%VERSION_NUMBER%").
         COPYPATH(RESUME_OPS, OPSFILE).
     } ELSE {
         IF NOT EXISTS(OPSFILE) {
-            LOCAL waituntil is TIME:SECONDS - 1.
+            set waituntil to 0.
             UNTIL HOMECONNECTION:ISCONNECTED {
                 IF waituntil < TIME:SECONDS {
                     pout("Waiting for connection to archive.").
@@ -26,9 +40,9 @@ PRINT("LEC BOOTLOADER v%VERSION_NUMBER%").
                 }
                 WAIT 0.
             }
-            IF EXISTS("1:/"+SAFENAME+".ops.ks") {
+            IF EXISTS(SHIPFILE) {
                 pout("Copying ops file from archive.").
-                COPYPATH("1:/"+SAFENAME+".ops.ks", OPSFILE).
+                COPYPATH(SHIPFILE, OPSFILE).
             }
         }
     }
