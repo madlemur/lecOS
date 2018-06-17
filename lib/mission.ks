@@ -29,13 +29,12 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function updateRunmode {
         PARAMETER n is runmode + 1.
         saveState().
-        local file.
         local fp is diskio["findpath"]("mission.runmode").
         if fp = "" {
             set fp to diskio["findspace"]("mission.runmode").
             create(fp).
         }
-        set file to open(fp).
+        local file is open(fp).
         file:clear().
         file:write(sequence[2 * n]).
         set runmode to n.

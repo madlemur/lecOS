@@ -1,19 +1,20 @@
 @LAZYGLOBAL OFF.
 PRINT("LEC BOOTLOADER v%VERSION_NUMBER%").
 {
+    wait until SHIP:UNPACKED and SHIP:LOADED.
     LOCAL OSFILE is "/lib/lec_os.ks".
     local waituntil is 0.
     IF NOT EXISTS("1:"+OSFILE) {
         set waituntil to 0.
         UNTIL HOMECONNECTION:ISCONNECTED {
             IF waituntil < TIME:SECONDS {
-                pout("Waiting for connection to archive.").
+                PRINT("Waiting for connection to archive.").
                 set waituntil to TIME:SECONDS + 10.
             }
             WAIT 0.
         }
         IF EXISTS("0:"+OSFILE) {
-            pout("Copying LEC_OS from archive.").
+            PRINT("Copying LEC_OS from archive.").
             COPYPATH("0:"+OSFILE, "1:"+OSFILE).
         }
     }

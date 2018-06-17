@@ -1,7 +1,6 @@
 @LAZYGLOBAL OFF.
 PRINT("LEC VOLMGT v%VERSION_NUMBER%").
 {
-    LOCAL VOLUME_NAMES is LIST().
     LOCAL self is lexicon(
         "init", init@
     ).
@@ -25,14 +24,10 @@ PRINT("LEC VOLMGT v%VERSION_NUMBER%").
         }
         if isImported("diskio") and not isImported("volmgt"){
             local dio is import("diskio").
-            set dio["listVolumes"] to listVolumes@.
             set dio["findFile"] to findFile@.
             set dio["findSpace"] to findSpace@.
         }
-    }
-
-    FUNCTION listVolumes {
-        return VOLUME_NAMES.
+        wait 0.
     }
 
     FUNCTION findFile {

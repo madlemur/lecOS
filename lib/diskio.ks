@@ -3,16 +3,20 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 {
 
     local self is lexicon(
-        "listVolumes", listVolumes@,
+        "init", init@,
         "findFile", findFile@,
         "findSpace", findSpace@,
         "loadFile", loadFile@,
         "delFile", delFile@,
         "runFile", runFile@
     ).
-    
-    FUNCTION listVolumes {
-        return list(CORE:CURRENTVOLUME:NAME).
+    LOCAL VOLUME_NAMES is LIST().
+
+    FUNCTION init {
+      IF CORE:CURRENTVOLUME:NAME = "" { SET CORE:CURRENTVOLUME:NAME TO "Disk0". }
+      LOCAL cvn IS CORE:CURRENTVOLUME:NAME.
+      SET VOLUME_NAMES TO LIST(cvn).
+      wait 0.
     }
 
     FUNCTION findFile {
@@ -27,7 +31,7 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
         IF CORE:CURRENTVOLUME:FREESPACE > mfs {
             RETURN CORE:CURRENTVOLUME:NAME + ":/" + fn.
         }
-        pout "ERROR: no room for " + fn + " (" + mfs + "b)!".
+        pout("ERROR: no room for " + fn + " (" + mfs + "b)!").
         RETURN "".
     }
 
@@ -38,7 +42,7 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 
         LOCAL afp IS "0:/" + fn.
         LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
-        IF loud { pOut("Copying from: " + afp + " (" + afs + " bytes)"). }
+        IF loud { pout("Copying from: " + afp + " (" + afs + " bytes)"). }
 
         SET lfp TO self["findSpace"](fn, afs).
         if lfp = "" {
@@ -47,6 +51,9 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
         } else {
             COPYPATH(afp,lfp).
             IF loud { pOut("Copied to: " + lfp). }
+            until exists(lfp) {
+              wait 0.
+            }
             RETURN lfp.
         }
     }
@@ -58,16 +65,13 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     }
 
     FUNCTION runFile {
-        PARAMETER fn, delafter is FALSE.
-        local lfn is self["findFile"](fn).
-        if not lfn = "" {
-            local result IS RUNPATH(lfn).
-            if delafter {
-                self["delFile"](lfn).
-            }
-            return result.
+      PARAMETER fn, delafter is FALSE.
+      if exists(fn) {
+        RUNPATH(fn).
+        if delafter {
+            self["delFile"](fn).
         }
-        return "".
+      }
     }
 
     export(self).

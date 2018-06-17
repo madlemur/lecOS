@@ -12,9 +12,9 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
         "stage", _stage@,
         "mAngle", mAngle@,
         "killWarp", killWarp@,
-        "warpUntil", warpUntil@
+        "warpUntil", warpUntil@,
         "doWarp", doWarp@
-    )
+    ).
     global import is {
         parameter n.
         local f is libname(n).
@@ -26,6 +26,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
             local p is "1:/"+n.
             if d:haskey("diskio") {
                 set p to d["diskio"]["loadfile"](n).
+                wait 0.
                 d["diskio"]["runfile"](p).
             } else {
                 copypath("0:/"+n, p).
@@ -66,7 +67,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
     }.
     global pout is {
         PARAMETER t, wt IS TRUE.
-        IF wt and d:haskey["text"] { SET t TO d["text"]["formatMET"] + " " + t. }
+        IF wt and d:haskey("text") { SET t TO d["text"]["formatMET"]() + " " + t. }
         PRINT t.
         plog(t).
     }.
@@ -75,7 +76,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
         IF IS_LOGGING and exists(LOGFILE) { LOG t TO LOGFILE. }
     }.
     global slog is {
-        PARAMETER f IS padRep(0,'_',SHIP:NAME) + ".log".
+        PARAMETER f IS padRep(0,"_",SHIP:NAME) + ".log".
         if d:haskey("diskio") {
             set LOGFILE to d["diskio"]["findspace"](f, 2048).
         } else {
@@ -93,7 +94,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
 
     function _stage {
         pout("Staging.").
-        if d:haskey["times"] {
+        if d:haskey("times") {
             d["times"]["setTime"]("STAGE").
         }
         STAGE.

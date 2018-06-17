@@ -2,10 +2,9 @@
 PRINT("LEC TEXT v%VERSION_NUMBER%").
 {
     local self is lexicon(
-        "init", init@,
         "formatTS", formatTS@,
         "formatMET", formatMET@
-    )
+    ).
 
     LOCAL INIT_MET_TS IS -1.
     LOCAL INIT_MET IS "".
