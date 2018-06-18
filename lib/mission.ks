@@ -34,7 +34,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         if n = -1 set n to runmode + 1.
         if n * 2 < sequence:length {
             saveState().
-            local fp is diskio["findpath"]("mission.runmode").
+            local fp is diskio["findfile"]("mission.runmode").
             if fp = "" {
                 set fp to diskio["findspace"]("mission.runmode").
                 create(fp).
@@ -52,26 +52,26 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function loadMission {
         PARAMETER fp.
-        lfp = diskio["loadfile"](fp).
+        local lfp is diskio["loadfile"](fp).
         diskio["runFile"](lfp, self).
     }
     function runMission {
         if resumeMission() >= 0 pout("Resuming mission").
         until done or runmode * 2 >= sequence:length {
           sequence[runmode * 2 + 1](mission).
-          for event in events:values {
-              if event[0] {
-                  event[1](mission).
+          for event in events:keys {
+              if events[event][0] {
+                  events[event][1](mission, event).
               }
           }
           wait 0.
         }
         saveState().
-        local fp is diskio["findpath"]("mission.runmode").
+        local fp is diskio["findfile"]("mission.runmode").
         if NOT fp = "" { deletepath(fp). }
     }
     function resumeMission {
-        local fp is diskio["findpath"]("mission.runmode").
+        local fp is diskio["findfile"]("mission.runmode").
         local n is -1.
         if NOT fp = "" {
             local last_mode is open(fp):readall():string.
