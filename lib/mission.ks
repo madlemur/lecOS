@@ -42,9 +42,8 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function loadMission {
         PARAMETER fp.
-        // It was here where I called the mission script, passing self as a parameter.
-        // I had another function, setSequence(mission, list), that should have set the
-        // closure list, but did nothing. Perhaps too many layers deep?
+        lfp = diskio["loadfile"](fp).
+        diskio["runFile"](lfp, self).
     }
     function runMission {
         if resumeMission() >= 0 pout("Resuming mission").
@@ -84,6 +83,14 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function addRunmode {
         PARAMETER name, delegate.
+        local newMode is 0.
+        local newName is name.
+        if name:matchespattern("/^\d{3}-.*$/") {
+            set newMode to name:substring(0,3).
+            set newName to name:remove(0,4).
+        } else {
+            set newMode to padRep(3,"0",sequence:length / 2).
+        }
         local modename is padRep(3,"0",sequence:length / 2) + "-" + name.
         if delegate:istype("KOSDelegate") {
             sequence:add(modename).

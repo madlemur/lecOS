@@ -2,5 +2,8 @@
 {
   import("lib/diskio.ks").
   import("lib/text.ks").
-  import("lib/mission.ks").
+  local mission is import("lib/mission.ks").
+
+  mission["loadMission"]("Missions/template.ks").
+  mission["runMission"]().
 }

@@ -65,9 +65,12 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     }
 
     FUNCTION runFile {
-      PARAMETER fn, delafter is FALSE.
+      PARAMETER fn, args is "", delafter is FALSE.
       if exists(fn) {
-        RUNPATH(fn).
+        if args = ""
+            RUNPATH(fn).
+        else
+            RUNPATH(fn, args).
         if delafter {
             self["delFile"](fn).
         }
