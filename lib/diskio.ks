@@ -5,6 +5,7 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     local self is lexicon(
         "init", init@,
         "findFile", findFile@,
+        "findPath", findFile@,
         "findSpace", findSpace@,
         "loadFile", loadFile@,
         "delFile", delFile@,
