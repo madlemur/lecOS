@@ -4,22 +4,25 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     local self is lex(
         "loadMission", loadMission@,
         "runMission", runMission@,
-        "next", updateRunmode@,
-        "switchTo", switchTo@,
+        "next", updateRunmode@:bind(-1),
+        "setRunmode", setRunmode@,
         "currRunmode", currRunmode@,
+        "appendRunmode", appendRunmode@,
+        "hasRunmode", hasRunmode@,
         "endMission", endMission@,
         "addEvent", addEvent@,
         "hasEvent", hasEvent@,
         "pauseEvent", pauseEvent@,
         "startEvent", startEvent@,
-        "deleteEvent", deleteEvent@,
+        "delEvent", delEvent@,
         "addData", addData@,
         "getData", getData@,
         "hasData", hasData@,
         "delData", delData@
     ).
     local sequence is list("Dummy", { parameter mission. mission["next"](). }).
-    local data is lex("_MISSION_DATA_", lex()).
+    local data is lex().
+    local mission_data is lex().
     local events is lex().
     local done is false.
     local runmode is 0.
@@ -27,18 +30,25 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     local diskio is import("lib/diskio.ks").
 
     function updateRunmode {
-        PARAMETER n is runmode + 1.
-        saveState().
-        local fp is diskio["findpath"]("mission.runmode").
-        if fp = "" {
-            set fp to diskio["findspace"]("mission.runmode").
-            create(fp).
+        PARAMETER n is -1.
+        if n = -1 set n to runmode + 1.
+        if n * 2 < sequence:length {
+            saveState().
+            local fp is diskio["findpath"]("mission.runmode").
+            if fp = "" {
+                set fp to diskio["findspace"]("mission.runmode").
+                create(fp).
+            }
+            local file is open(fp).
+            file:clear().
+            file:write(sequence[2 * n]).
+            set runmode to n.
+            loadState().
+            return true.
+        } else {
+            pout("Runmode " + n + " is out of bounds.").
+            return false.
         }
-        local file is open(fp).
-        file:clear().
-        file:write(sequence[2 * n]).
-        set runmode to n.
-        loadState().
     }
     function loadMission {
         PARAMETER fp.
@@ -49,11 +59,14 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         if resumeMission() >= 0 pout("Resuming mission").
         until done or runmode * 2 >= sequence:length {
           sequence[runmode * 2 + 1](mission).
-          for event in events:keys {
-              events[event](mission).
+          for event in events:values {
+              if event[0] {
+                  event[1](mission).
+              }
           }
           wait 0.
         }
+        saveState().
         local fp is diskio["findpath"]("mission.runmode").
         if NOT fp = "" { deletepath(fp). }
     }
@@ -69,11 +82,19 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function hasRunmode {
         PARAMETER mn.
-        return sequence:contains(mn).
+        local n is -1.
+        set n to indexof(sequence, mn).
+        return n >= 0.
     }
     function setRunmode {
         PARAMETER mn.
-        if hasRunmode(rm)
+        local ix is hasRunmode(mn).
+        if ix >= 0 {
+            updateRunmode(ix / 2).
+            return true.
+        } else {
+            return false.
+        }
     }
     function currRunmode {
         return sequence[runmode * 2].
@@ -81,23 +102,20 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function endMission {
         set done to true.
     }
-    function addRunmode {
+    function appendRunmode {
         PARAMETER name, delegate.
-        local newMode is 0.
-        local newName is name.
-        if name:matchespattern("/^\d{3}-.*$/") {
-            set newMode to name:substring(0,3).
-            set newName to name:remove(0,4).
-        } else {
-            set newMode to padRep(3,"0",sequence:length / 2).
+        if hasRunmode(name) >= 0 {
+            pout("Runmode named " + name + " already added.").
+            return false.
         }
-        local modename is padRep(3,"0",sequence:length / 2) + "-" + name.
         if delegate:istype("KOSDelegate") {
-            sequence:add(modename).
+            sequence:add(name).
             sequence:add(delegate).
-            return modename.
+            return true.
+        } else {
+            pout("Runmode must be accompanied by a function delegate.").
+            return false.
         }
-        return false.
     }
     function addEvent {
         PARAMETER name, delegate.
@@ -130,15 +148,42 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function addData {
         PARAMETER name, value.
         PARAMETER msn_data is FALSE.
+        if msn_data {
+            if mission_data:haskey(name) {
+                mission_data:remove(name).
+            }
+            mission_data:add(name, value).
+        } else {
+            if data:haskey(name) {
+                data:remove(name).
+            }
+            data:add(name, value).
+        }
+        return true.
     }
     function getData {
         PARAMETER name.
+        if data:haskey[name] {
+            return data[name].
+        } else if mission_data:haskey[name] {
+            return mission_data[name].
+        }
+        return false. // for lack of a better value...
     }
     function hasData {
         PARAMETER name.
+        return (data:haskey(name) or mission_data:haskey(name)).
     }
     function delData {
         PARAMETER name.
+        if data:haskey(name) {
+            data:remove(name).
+            return true.
+        } else if mission_data:haskey[name] {
+            mission_data:remove(name).
+            return true.
+        }
+        return false.
     }
     function saveState {
         local d is lex().
@@ -161,9 +206,9 @@ pout("LEC MISSION v%VERSION_NUMBER%").
             set d to readjson(fp).
         }
         set data to lex().
+        set mission_data to lex().
         if d:haskey(currRunmode()) set data to d[currRunmode()].
         if d:haskey("__MISSION__") set mission_data to d["__MISSION__"].
-        else set mission_data to lex().
     }
     function indexof {
       parameter _list, item. local i is 0.
