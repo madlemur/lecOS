@@ -51,9 +51,6 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
         } else {
             COPYPATH(afp,lfp).
             IF loud { pOut("Copied to: " + lfp). }
-            until exists(lfp) {
-              wait 0.
-            }
             RETURN lfp.
         }
     }
@@ -65,11 +62,14 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     }
 
     FUNCTION runFile {
-      PARAMETER fn, delafter is FALSE.
-      if exists(fn) {
-        RUNPATH(fn).
+      PARAMETER fp, args is "", delafter is FALSE.
+      if exists(fp) {
+        if args = ""
+          RUNPATH(fp).
+        else
+          RUNPATH(fp, args).
         if delafter {
-            self["delFile"](fn).
+            self["delFile"](fp).
         }
       }
     }

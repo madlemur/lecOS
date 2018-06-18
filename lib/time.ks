@@ -4,11 +4,21 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
     local self is lexicon(
         "setTime", setTime@,
         "diffTime", diffTime@,
+        "hasTime", hasTime@,
+        "delTime", delTime@,
         "stageTime", diffTime@:BIND("STAGE")
     ).
 
     local TIMES is lexicon().
-
+    FUNCTION hasTime {
+      PARAMETER n.
+      return TIMES:haskey(n).
+    }
+    FUNCTION delTime {
+      PARAMETER n.
+      if TIMES:haskey(n)
+        TIMES:remove(n).
+    }
     FUNCTION setTime
     {
       PARAMETER n, t IS TIME:SECONDS.

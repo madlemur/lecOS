@@ -16,7 +16,8 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         "addData", addData@,
         "getData", getData@,
         "hasData", hasData@,
-        "delData", delData@
+        "delData", delData@,
+        "setSequence", setSequence@
     ).
     local sequence is list().
     local data is lex("_MISSION_DATA_", lex()).
@@ -29,9 +30,9 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function updateRunmode {
         PARAMETER n is runmode + 1.
         saveState().
-        local fp is diskio["findpath"]("mission.runmode").
+        local fp is diskio["findFile"]("mission.runmode").
         if fp = "" {
-            set fp to diskio["findspace"]("mission.runmode").
+            set fp to diskio["findSpace"]("mission.runmode").
             create(fp).
         }
         local file is open(fp).
@@ -41,22 +42,31 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         loadState().
     }
     function loadMission {
-        PARAMETER fp.
+        PARAMETER fn is "Missions/" + SAFENAME + ".ks".
+        LOCAL lfp is diskio["loadFile"](fn).
+        if NOT lfp = "" {
+          diskio["runFile"](lfp, self).
+        }
     }
     function runMission {
+      pout("Running Mission").
+      for m in sequence {
+        pout(m).
+      }
+      pout(data:dump).
+      pout(events:dump).
         if resumeMission() >= 0 pout("Resuming mission").
         until done or runmode * 2 >= sequence:length {
           sequence[runmode * 2 + 1](mission).
           for event in events:keys {
               events[event](mission).
           }
-          wait 0.
         }
-        local fp is diskio["findpath"]("mission.runmode").
-        if NOT fp = "" { deletepath(fp). }
+        local fp is diskio["findFile"]("mission.runmode").
+        if NOT fp = "" { diskio["delFile"](fp). }
     }
     function resumeMission {
-        local fp is diskio["findpath"]("mission.runmode").
+        local fp is diskio["findFile"]("mission.runmode").
         local n is -1.
         if NOT fp = "" {
             local last_mode is open(fp):readall():string.
@@ -127,7 +137,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function saveState {
         local d is lex().
-        local fp is diskio["findfile"]("mission.data").
+        local fp is diskio["findFile"]("mission.data").
         if NOT fp = "" {
             set d to readjson(fp).
         }
@@ -141,7 +151,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function loadState {
         local d is lex().
-        local fp is diskio["findfile"]("mission.data").
+        local fp is diskio["findFile"]("mission.data").
         if NOT fp = "" {
             set d to readjson(fp).
         }
@@ -157,6 +167,16 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         set i to i + 1.
       }
       return -1.
+    }
+    function setSequence {
+      PARAMETER seq.
+      if NOT seq:istype("LIST") OR seq:length:mod(2) > 0 {
+        pout("Error setting mission sequence. Must be a list of label, delegate pairs.").
+        return false.
+      } else {
+        set sequence to seq.
+        return true.
+      }
     }
     export(self).
 }

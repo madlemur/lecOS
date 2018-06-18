@@ -94,8 +94,8 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
 
     function _stage {
         pout("Staging.").
-        if d:haskey("times") {
-            d["times"]["setTime"]("STAGE").
+        if d:haskey("time") {
+            d["time"]["setTime"]("STAGE").
         }
         STAGE.
     }
