@@ -18,7 +18,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         "hasData", hasData@,
         "delData", delData@
     ).
-    local sequence is list().
+    local sequence is list("Dummy", { parameter mission. mission["next"](). }).
     local data is lex("_MISSION_DATA_", lex()).
     local events is lex().
     local done is false.
@@ -42,6 +42,9 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function loadMission {
         PARAMETER fp.
+        // It was here where I called the mission script, passing self as a parameter.
+        // I had another function, setSequence(mission, list), that should have set the
+        // closure list, but did nothing. Perhaps too many layers deep?
     }
     function runMission {
         if resumeMission() >= 0 pout("Resuming mission").
@@ -65,8 +68,13 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         }
         return n.
     }
-    function switchto {
-        PARAMETER rm.
+    function hasRunmode {
+        PARAMETER mn.
+        return sequence:contains(mn).
+    }
+    function setRunmode {
+        PARAMETER mn.
+        if hasRunmode(rm)
     }
     function currRunmode {
         return sequence[runmode * 2].
@@ -76,7 +84,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function addRunmode {
         PARAMETER name, delegate.
-        local modename is padRep(3,"0",sequence:length / 2) + name.
+        local modename is padRep(3,"0",sequence:length / 2) + "-" + name.
         if delegate:istype("KOSDelegate") {
             sequence:add(modename).
             sequence:add(delegate).
@@ -132,9 +140,9 @@ pout("LEC MISSION v%VERSION_NUMBER%").
             set d to readjson(fp).
         }
         if data:length > 0 {
-          set d[report_runmode()] to data.
+          set d[currRunmode()] to data.
         } else {
-          if d:haskey(report_runmode()) d:remove(report_runmode()).
+          if d:haskey(currRunmode()) d:remove(currRunmode()).
         }
         set d["__MISSION__"] to mission_data.
         writejson(d, fp).
@@ -146,7 +154,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
             set d to readjson(fp).
         }
         set data to lex().
-        if d:haskey(report_runmode()) set data to d[report_runmode()].
+        if d:haskey(currRunmode()) set data to d[currRunmode()].
         if d:haskey("__MISSION__") set mission_data to d["__MISSION__"].
         else set mission_data to lex().
     }
