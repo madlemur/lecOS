@@ -3,7 +3,13 @@
   import("lib/diskio.ks").
   import("lib/text.ks").
   local mission is import("lib/mission.ks").
-  import("lib/time.ks").
-  mission["loadMission"]().
+  local events is import("lib/events.ks").
+
+  mission["loadMission"]("Missions/template.ks").
+
+  mission["addEvent"]("fairings", events["deployFairings"]).
+  mission["addEvent"]("staging", events["checkStaging"]).
+  mission["pauseEvent"]("staging").
+
   mission["runMission"]().
 }
