@@ -41,6 +41,7 @@
 + *string* `formatMET`()
 
 **mission** (*mission.ks*)
++ *bool* `init`()
 + *bool* `loadMission`(*filepath*, *string*=`padRep(0,'_',SHIP:NAME)`)
 + *void* `runMission`(*string*=`padRep(0,'_',SHIP:NAME)`)
 + *bool* `next`()
@@ -50,7 +51,8 @@
 + *bool* `startEvent`(*string*)
 + *bool* `delEvent`(*string*)
 + *bool* `hasRunmode`(*string*)
-+ *string* `appendRunmode`(*string*, *delegate*)
++ *string* `addRunmode`(*string*, *delegate*)
++ *bool* `delRunmode`(*string*)
 + *bool* `setRunmode`(*string*)
 + *string* `currRunmode`()
 + *bool* `endMission`()
