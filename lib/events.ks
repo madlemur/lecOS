@@ -35,7 +35,7 @@
 
     function deployFairings {
         parameter mission, name.
-        if body:atm:height * fairingAltPct < ship:alt AND ship:Q < fairingATM {
+        if body:atm:height * fairingAltPct < ship:altitude AND ship:Q < fairingATM {
             pout("Deploying/Jettisoning fairings.").
             FOR module IN SHIP:MODULESNAMED("ModuleProceduralFairing") { // Stock and KW Fairings
                 // and deploys them

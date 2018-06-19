@@ -9,7 +9,7 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
         "stageTime", diffTime@:BIND("STAGE")
     ).
 
-    local TIMES is lexicon().
+    local TIMES is lexicon("STAGE", -9999999).
     FUNCTION hasTime {
       PARAMETER n.
       return TIMES:haskey(n).

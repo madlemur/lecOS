@@ -27,7 +27,8 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     }
 
     FUNCTION findSpace {
-        PARAMETER fn, mfs.
+        PARAMETER fn.
+        PARAMETER mfs is 256.
         IF CORE:CURRENTVOLUME:FREESPACE > mfs {
             RETURN CORE:CURRENTVOLUME:NAME + ":/" + fn.
         }
