@@ -9,26 +9,28 @@
     local fairingATM is 0.05.
     local fairingAltPct is 0.9.
     local minScience is 5.
+    local englist is false.
 
     local times is import("lib/time.ks").
 
     function checkStaging {
         parameter mission, name.
-        local englist is list().
+        // Can't stage, don't bother to check...
+        if times["stageTime"]() < waitToStage {
+          return false.
+        }
         // We're going to cache the engine list to avoid walking the part tree every tick.
-        if not self:haskey("englist") {
+        if englist:istype("boolean") {
           pout("Enumerating engines", true).
           list engines in englist.
-          set self["englist"] to englist.
         }
         local flameout is false.
-        set englist to self["englist"].
         for eng in englist { if eng:flameout { set flameout to true. break. } }
         if flameout or maxthrust = 0 {
           if flameout
             // Since an engine has flamed out, there's an implicit assumption that the engine list will change
-            self:remove("englist").
-          if times["stageTime"]() > waitToStage { __["stage"](). }
+            set englist to false.
+          __["stage"]().
           steeringmanager:resetpids().
         }
     }

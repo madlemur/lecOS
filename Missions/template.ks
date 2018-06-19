@@ -5,13 +5,13 @@
     local mission_list is list (
         "PreLaunch", { parameter mission. pout("PreLaunch"). wait(5). mission["next"](). },
         "Launch", { parameter mission. pout("Whee!"). lock throttle to 1. lock steering to heading(90, lpitch()). mission["startEvent"]("staging"). mission["next"](). },
-        "Ascend", { parameter mission. if ship:apoapsis > 100000 { lock throttle to ((100000-SHIP:APOAPSIS)/1000). mission["next"](). } },
-        "Coast", { parameter mission. if ship:altitude > body:atm:height { panels on. lock throttle to th. lock steering to st. mission["next"](). } },
-        "WaitApo", { parameter mission. if eta:apoapsis < 10 mission["next"](). },
+        "Ascend", { parameter mission. if ship:apoapsis > 100000 { lock throttle to max(0, ((100005-SHIP:APOAPSIS)/1000)). mission["next"](). } },
+        "Coast", { parameter mission. if ship:altitude > body:atm:height AND ship:apoapsis > 100000 { panels on. mission["next"](). } },
+        "WaitApo", { parameter mission. if eta:apoapsis < 10 { lock throttle to th. lock steering to st. mission["next"](). } },
         "Circularize", { parameter mission. if circularize() { lock throttle to 0. lock steering to body("sun"):position. wait(5). unlock throttle. unlock steering. mission["endMission"](). } }
     ).
     local th is 0.
-    local st is facing.
+    local st is ship:prograde:forevector.
 
     function lpitch {
       if altitude > 250
