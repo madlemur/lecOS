@@ -9,7 +9,7 @@
 
   mission["addEvent"]("fairings", events["deployFairings"]).
   mission["addEvent"]("staging", events["checkStaging"]).
-  mission["pauseEvent"]("staging").
+  mission["pauseEvent"]("staging"). // Don't start staging just yet...
 
   mission["runMission"]().
 }

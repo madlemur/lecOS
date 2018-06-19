@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 {
+    // This sample mission should get a craft into about a 100km equitorial orbit,  staging, jettisoning fairings, and deploying solar panels as it goes.
     parameter mission.
     local mission_list is list (
         "PreLaunch", { parameter mission. pout("PreLaunch"). wait(5). mission["next"](). },
