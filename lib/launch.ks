@@ -5,7 +5,10 @@
     "calcLaunchDetails", calcLaunchDetails@,
     "getPitch", getPitch@,
     "getBearing", getBearing@,
-    "getThrottle", getThrottle@
+    "getThrottle", getThrottle@,
+    "circularized", circularized@,
+    "circ_thrott", circ_thrott@,
+    "circ_heading", circ_heading@
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
@@ -154,6 +157,51 @@
     PARAMETER h.
     IF h > 0 { SET HALF_LAUNCH TO h. }
   }
+
+  // Return eta:apoapsis but with times behind you
+  // rendered as negative numbers in the past:
+  function eta_ap_with_neg {
+    local ret_val is eta:apoapsis.
+    if ret_val > ship:obt:period / 2 {
+      set ret_val to ret_val - ship:obt:period.
+    }
+    return ret_val.
+  }
+
+  function compass_of_vel {
+      local pointing is ship:velocity:orbit.
+      local east is vcrs(ship:up:vector, ship:north:vector)
+
+      local trig_x is vdot(ship:north:vector, pointing).
+      local trig_y is vdot(east, pointing).
+
+      local result is arctan2(trig_y, trig_x).
+
+      return __["mAngle"](result).
+    }
+
+    function circ_heading {
+        return heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
+    }
+
+    function circ_thrott {
+      if abs(steeringmanager:yawerror) < 2 and
+           abs(steeringmanager:pitcherror) < 2 and
+           abs(steeringmanager:rollerror) < 2 {
+               return 0.02 + (30*ship:obt:eccentricity).
+      } else {
+          return 0.
+      }
+    }
+
+    function circularized {
+      if (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
+        unlock steering.
+        unlock throttle.
+        return true.
+      }
+      return false.
+    }
 
   export(self).
 }
