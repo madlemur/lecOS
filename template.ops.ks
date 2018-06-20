@@ -8,8 +8,8 @@
   mission["loadMission"]("Missions/template.ks").
 
   mission["addEvent"]("fairings", events["deployFairings"]).
-  mission["addEvent"]("staging", events["checkStaging"]).
-  mission["pauseEvent"]("staging"). // Don't start staging just yet...
+  mission["addEvent"]("panels", events["deployPanels"]).
+  mission["addEvent"]("staging", events["checkStaging"], false).
 
   mission["runMission"]().
 }

@@ -2,12 +2,14 @@
 {
     local self is lex(
         "checkStaging", checkStaging@,
-        "deployFairings", deployFairings@
+        "deployFairings", deployFairings@,
+        "deployPanels", deployPanels@
     ).
 
     local waitToStage is 1.
     local fairingATM is 0.05.
     local fairingAltPct is 0.9.
+    local panelsAltPct is 1.05.
     local minScience is 5.
     local englist is false.
 
@@ -48,6 +50,15 @@
                 // and jettisons them (PF uses the word jettison in the right click menu instead of deploy)
                 module:DOEVENT("jettison").
             }.
+            mission["delEvent"](name).
+        }
+    }
+
+    function deployPanels {
+        parameter mission, name.
+        if body:atm:height * panelsAltPct < ship:altitude {
+            pout("Deploying solar panels").
+            panels on.
             mission["delEvent"](name).
         }
     }

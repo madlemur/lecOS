@@ -8,7 +8,8 @@
     "getThrottle", getThrottle@,
     "circularized", circularized@,
     "circ_thrott", circ_thrott@,
-    "circ_heading", circ_heading@
+    "circ_heading", compass_of_vel@,
+    "circ_pitch", circ_pitch@
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
@@ -180,8 +181,8 @@
       return __["mAngle"](result).
     }
 
-    function circ_heading {
-        return heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
+    function circ_pitch {
+        return -(eta_ap_with_neg()/3).
     }
 
     function circ_thrott {
