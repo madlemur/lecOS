@@ -1,8 +1,8 @@
 @LAZYGLOBAL OFF.
 {
   local self is lex(
-    "setLaunchParameters", setLaunchParameters@,
-    "calcLaunchDetails", calcLaunchDetails@,
+    "setLaunchParameters", slp@,
+    "calcLaunchDetails", cld@,
     "getPitch", getPitch@,
     "getBearing", getBearing@,
     "getThrottle", getThrottle@,
@@ -19,19 +19,19 @@
   local LCH_AN is 0.
   local HALF_LAUNCH is 145.
 
-  function setLaunchParameters {
+  function slp {
     // Altitude at which the pitchover begins
-    PARAMETER pitch_altitude IS 250.
+    PARAMETER p_a IS 250.
     // Altitude at which the pitchover ends
-    PARAMETER curve_altitude IS BODY:ATM:HEIGHT * 0.9.
+    PARAMETER c_a IS BODY:ATM:HEIGHT * 0.9.
     // The function that gets from one to the other
-    PARAMETER curve_delegate IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/c_alt)),45-VERTICALSPEED))). }.
-    SET p_alt to pitch_altitude.
-    SET c_alt to curve_altitude.
-    SET c_del to curve_delegate.
+    PARAMETER c_d IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/c_alt)),45-VERTICALSPEED))). }.
+    SET p_alt to p_a.
+    SET c_alt to c_a.
+    SET c_del to c_d.
   }
 
-  function calcLaunchDetails {
+  function cld {
     // The desireed orbital height
     PARAMETER l_alt.
     // orbit inclination
@@ -42,23 +42,23 @@
     SET LCH_I to l_inc.
     SET LCH_ORBIT_VEL to SQRT(BODY:MU/(BODY:RADIUS + l_alt)).
 
-    LOCAL az IS azimuth(l_inc).
-    IF az < 0 { RETURN noPassLaunchDetails(l_alt,l_inc,l_lan). }
-    ELSE { RETURN launchDetails(l_alt,l_inc,l_lan,az). }
+    LOCAL az IS azm(l_inc).
+    IF az < 0 { RETURN npld(l_alt,l_inc,l_lan). }
+    ELSE { RETURN ld(l_alt,l_inc,l_lan,az). }
 
   }
 
-  FUNCTION azimuth {
+  FUNCTION azm {
     PARAMETER i.
     IF latIncOk(LATITUDE,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(LATITUDE))). }
     RETURN -1.
   }
 
-  FUNCTION launchAzimuth {
+  FUNCTION lazm {
     PARAMETER planet, az, ap.
 
     LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
-    LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
+    LOCAL v_rot IS ssal(planet,LATITUDE).
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
     LOCAL raz IS __["mAngle"](90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
@@ -67,7 +67,7 @@
     RETURN raz.
   }
 
-  FUNCTION planetSurfaceSpeedAtLat {
+  FUNCTION ssal {
     PARAMETER planet, lat.
 
     LOCAL v_rot IS 0.
@@ -77,7 +77,7 @@
     RETURN v_rot.
   }
 
-  FUNCTION noPassLaunchDetails {
+  FUNCTION npld {
     PARAMETER ap,i,lan.
 
     LOCAL az IS 90.
@@ -87,26 +87,26 @@
     IF i = 0 OR i = 180 { RETURN LIST(az,0). }
 
     LOCAL peta IS 0.
-    IF LATITUDE > 0 { SET peta TO etaToOrbitPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
-    ELSE { SET peta TO etaToOrbitPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
+    IF LATITUDE > 0 { SET peta TO etop(TRUE,BODY,lan,i,lat,LONGITUDE). }
+    ELSE { SET peta TO etop(FALSE,BODY,lan,i,-lat,LONGITUDE). }
     LOCAL launch_time IS TIME:SECONDS + peta - HALF_LAUNCH.
     RETURN LIST(az,launch_time).
   }
 
-  FUNCTION launchDetails {
+  FUNCTION ld {
     PARAMETER ap,i,lan,az.
 
     LOCAL peta IS 0.
-    SET az TO launchAzimuth(BODY,az,ap).
-    LOCAL eta_to_AN IS etaToOrbitPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
-    LOCAL eta_to_DN IS etaToOrbitPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
+    SET az TO lazm(BODY,az,ap).
+    LOCAL etan IS etop(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
+    LOCAL etdn IS etop(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
-    IF eta_to_DN < 0 AND eta_to_AN < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
-    ELSE IF (eta_to_DN < eta_to_AN OR eta_to_AN < HALF_LAUNCH) AND eta_to_DN >= HALF_LAUNCH {
-      SET peta TO eta_to_DN.
+    IF etdn < 0 AND etan < 0 { RETURN npld(ap,i,lan). }
+    ELSE IF (etdn < etan OR etan < HALF_LAUNCH) AND etdn >= HALF_LAUNCH {
+      SET peta TO etdn.
       SET az TO __["mAngle"](180 - az).
-    } ELSE IF eta_to_AN >= HALF_LAUNCH { SET peta TO eta_to_AN. }
-    ELSE { SET peta TO eta_to_AN + BODY:ROTATIONPERIOD. }
+    } ELSE IF etan >= HALF_LAUNCH { SET peta TO etan. }
+    ELSE { SET peta TO etan + BODY:ROTATIONPERIOD. }
     LOCAL launch_time IS TIME:SECONDS + peta - HALF_LAUNCH.
     RETURN LIST(az,launch_time).
   }
@@ -116,7 +116,7 @@
     RETURN (i > 0 AND ABS(lat) < 90 AND MIN(i,180-i) >= ABS(lat)).
   }
 
-  FUNCTION etaToOrbitPlane {
+  FUNCTION etop {
     PARAMETER is_AN, planet, orb_lan, i, ship_lat, ship_lng.
 
     LOCAL peta IS -1.
