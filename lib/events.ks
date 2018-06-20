@@ -5,7 +5,7 @@
         "deployFairings", deployFairings@
     ).
 
-    local waitToStage is 2.
+    local waitToStage is 1.
     local fairingATM is 0.05.
     local fairingAltPct is 0.9.
     local minScience is 5.

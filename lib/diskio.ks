@@ -38,8 +38,8 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 
     FUNCTION loadFile {
         PARAMETER fn, loud IS TRUE.
-        LOCAL lfp IS self["findFile"](fn).
-        IF NOT lfp = "" { RETURN lfp. }
+        LOCAL lfp IS findFile(fn).
+        IF NOT (lfp = "") { RETURN lfp. }
 
         LOCAL afp IS "0:/" + fn.
         LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
