@@ -6,7 +6,7 @@
 // MUST NOT be used for vessels that will operate out of comms range!!
 /////////////////////////////////////////////////////////////////////////////
 
-@LAZYGLOBALS OFF.
+@LAZYGLOBAL OFF.
 
 PRINT("Bootstrapping OS").
 

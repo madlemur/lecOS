@@ -25,7 +25,7 @@ installedboots := $(foreach file, $(boots), $(BOOTINSTALLDIR)/$(file))
 packedcrafts := $(foreach file, $(crafts:.ks=.ksp), $(CRAFTSTAGEDIR)/$(file))
 installedcrafts := $(foreach file, $(crafts), $(CRAFTINSTALLDIR)/$(file))
 packedlibs := $(foreach file, $(libs:.ks=.ksp), $(LIBSTAGEDIR)/$(file))
-installedlibs := $(foreach file, $(libs), $(LIBINSTALLDIR)/$(file)) 
+installedlibs := $(foreach file, $(libs), $(LIBINSTALLDIR)/$(file))
 
 all : $(packed) $(packedmissions) $(packedboots) $(packedcrafts) $(packedlibs)
 
@@ -48,6 +48,12 @@ $(CRAFTSTAGEDIR)/%.ksp : %.ks
 
 $(LIBSTAGEDIR)/%.ksp : %.ks
 	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' ' | /bin/sed -e 's/%VERSION_NUMBER%/$(GIT_VERSION)/'  > $@;
+
+$(CRAFTSTAGEDIR)/%.ksp : %.ks
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
+
+$(LIBSTAGEDIR)/%.ksp : %.ks
+	./packer.sed < $< | /bin/sed -e 's|^\s*\(.*\)\s*$$|\1|g' -e '/^$$/d' | /bin/tr '\n' ' '  > $@;
 
 $(INSTALLDIR)/%.ks : $(STAGEDIR)/%.ksp
 	cp $< '$@';
