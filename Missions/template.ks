@@ -4,10 +4,11 @@
     parameter mission.
     local launch is import("lib/launch.ks").
     local mission_list is list (
-        "PreLaunch", { parameter mission. local l_detail is launch["calcLaunchDetails"](100000, 15, 59). for d in l_detail { pout(d). }. set l_time to l_detail[1]. lock steering to heading(l_detail[0], 90). lock throttle to 1. __["warpUntil"](l_time - 15). mission["next"](). },
-        "Launch", { parameter mission. if TIME:SECONDS > l_time mission["startEvent"]("staging"). if SHIP:AIRSPEED > 100 { mission["next"](). } },
-        "Turn", { parameter mission. lock steering to st. set th to launch["getThrottle"](). set st to heading(launch["getBearing"](),launch["getPitch"]()). mission["next"](). },
-        "Ascend", { parameter mission. ascendControls(). if ship:apoapsis > 100000 { mission["next"](). } },
+        "PreLaunch", { parameter mission. local l_detail is launch["calcLaunchDetails"](100000, 5). for d in l_detail { pout(d). }. set l_time to l_detail[1]. set st to heading(l_detail[0], 90). set th to 1. __["warpUntil"](l_time - 15). lock steering to st. lock throttle to th. mission["next"](). },
+        "Launch", { parameter mission. if ship:status = "PRELAUNCH" and TIME:SECONDS > l_time mission["startEvent"]("staging"). if SHIP:AIRSPEED > 100 { mission["next"](). } },
+        "Turn", { parameter mission. ascendControls(). mission["next"](). },
+        "Ascend", { parameter mission. ascendControls(). if ship:apoapsis > 100000 and ship:altitude > body:atm:height { RCS ON. mission["next"](). } },
+        "Coast", { parameter mission. set st to heading(launch["circ_heading"](), launch["circ_pitch"]()). set th to 0. if ship:altitude > ship:apoapsis or eta:periapsis < eta:apoapsis { mission["next"](). } },
         "Circularize", { parameter mission. circControls(). if launch["circularized"]() { mission["next"](). } },
         "Finish", { parameter mission. lock throttle to 0. lock steering to body("sun"):position. wait(15). RCS OFF. unlock throttle. unlock steering. mission["endMission"](). }
     ).

@@ -17,6 +17,7 @@
   local LCH_I IS 0.
   local LCH_ORBIT_VEL is 0.
   local LCH_AN is 0.
+  local LCH_APO is 0.
   local HALF_LAUNCH is 145.
 
   function slp {
@@ -41,6 +42,7 @@
     SET LCH_AN to l_lan.
     SET LCH_I to l_inc.
     SET LCH_ORBIT_VEL to SQRT(BODY:MU/(BODY:RADIUS + l_alt)).
+    SET LCH_APO to l_alt.
 
     LOCAL az IS azm(l_inc).
     IF az < 0 { RETURN npld(l_alt,l_inc,l_lan). }
@@ -149,7 +151,8 @@
     return c_del().
   }
   function getThrottle {
-    return 1.
+    if ship:apoapsis < LCH_APO return 1.1 - min(1, max(0, (ship:apoapsis/LCH_APO)^3)).
+    return 0.
   }
   LOCAL HALF_LAUNCH IS 145.
 
@@ -171,7 +174,7 @@
 
   function compass_of_vel {
       local pointing is ship:velocity:orbit.
-      local east is vcrs(ship:up:vector, ship:north:vector)
+      local east is vcrs(ship:up:vector, ship:north:vector).
 
       local trig_x is vdot(ship:north:vector, pointing).
       local trig_y is vdot(east, pointing).

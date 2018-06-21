@@ -21,6 +21,7 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
 
     FUNCTION findFile {
         PARAMETER fn.
+        if fn="" return "".
         LOCAL lfp IS CORE:CURRENTVOLUME:NAME + ":/" + fn.
         IF EXISTS(lfp) { RETURN lfp. }
         RETURN "".
@@ -59,7 +60,7 @@ PRINT("LEC DISKIO v%VERSION_NUMBER%").
     FUNCTION delFile {
         PARAMETER fn.
         LOCAL lfp IS self["findFile"](fn).
-        IF not lfp = "" { DELETEPATH(lfp). }
+        IF not (lfp = "") { DELETEPATH(lfp). }
     }
 
     FUNCTION runFile {

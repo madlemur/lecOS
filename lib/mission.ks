@@ -124,7 +124,8 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         }
     }
     function addEvent {
-        PARAMETER name, delegate isActive is true.
+        PARAMETER name, delegate.
+        PARAMETER isActive is true.
         events:add(name, list(isActive, delegate)).
     }
     function hasEvent {
