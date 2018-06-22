@@ -6,7 +6,7 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
         "diffTime", diffTime@,
         "hasTime", hasTime@,
         "delTime", delTime@,
-        "stageTime", diffTime@:BIND("STAGE")
+        "stageTime", diffTime@:bind("STAGE")
     ).
 
     local TIMES is lexicon("STAGE", -9999999).

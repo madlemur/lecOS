@@ -22,16 +22,17 @@
           return false.
         }
         // We're going to cache the engine list to avoid walking the part tree every tick.
-        if englist:istype("boolean") {
+        if englist:istype("boolean") || englist:length = 0 {
           pout("Enumerating engines", true).
           list engines in englist.
         }
-        local flameout is false.
-        for eng in englist { if eng:flameout { set flameout to true. break. } }
-        if flameout or maxthrust = 0 {
-          if flameout
-            // Since an engine has flamed out, there's an implicit assumption that the engine list will change
-            set englist to false.
+        local flameout is englist:length = 0.
+        if not flameout {
+            for eng in englist { if eng:flameout { set flameout to true. break. } }
+        }
+        if flameout  {
+          // Since an engine has flamed out, there's an implicit assumption that the engine list will change
+          set englist to false.
           __["stage"]().
           steeringmanager:resetpids().
         }
