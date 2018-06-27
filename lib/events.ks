@@ -1,4 +1,5 @@
 @LAZYGLOBAL OFF.
+pout("LEC EVENTS v%VERSION_NUMBER%").
 {
     local self is lex(
         "checkStaging", checkStaging@,
@@ -14,7 +15,7 @@
     local englist is false.
 
     local times is import("lib/time.ks").
-    local maneuver is import("lib/maneuver.ks").
+    local staging is import("lib/staging.ks").
 
     function checkStaging {
         parameter mission, name.
@@ -22,7 +23,7 @@
         if times["stageTime"]() < waitToStage {
           return false.
         }
-        if maneuver["checkStaging"]() {
+        if staging["checkStaging"]() {
             _["stage"]().
             steeringManager:resetPids().
         }

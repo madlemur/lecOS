@@ -17,6 +17,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
     ).
     global import is {
         parameter n.
+        parameter dl is true.
         local f is libname(n).
         if d:haskey(f) {
             return d[f].
@@ -25,12 +26,19 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
             s:push(f).
             local p is "1:/"+n.
             if d:haskey("diskio") {
-                set p to d["diskio"]["loadfile"](n).
-                wait 0.
-                d["diskio"]["runfile"](p).
+                if dl {
+                    set p to d["diskio"]["loadfile"](n).
+                    d["diskio"]["runfile"](p).
+                } else {
+                    d["diskio"]["runfile"]("0:/"+n).
+                }
             } else {
-                copypath("0:/"+n, p).
-                RUNONCEPATH(p).
+                if dl {
+                    copypath("0:/"+n, p).
+                    RUNONCEPATH(p).
+                } else {
+                    RUNONCEPATH("0:/"+n).
+                }
             }
             return d[f].
         }
@@ -139,7 +147,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
       parameter irfVec, SPV is SolarPrimeVector.
       return V( irfVec:x * SPV:x - irfVec:y * SPV:z, irfVec:z, irfVec:x * SPV:z + irfVec:y * SPV:x ).
     }.
-    
+
     global __ is boot_lib.
     global SAFENAME is padRep(0, "_", SHIP:NAME).
 }

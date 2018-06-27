@@ -31,15 +31,15 @@ pout("LEC TANGENT INTERCEPTS v%VERSION_NUMBER%").
 
     function getInterceptMajor {
         parameter k, a, alpha, per.
-        local val is k^2 * a^2 * cos(alpha) + k^2 * a^2 - 2 * rad.
-        set val to val / (2*k*a*cos(alpha) + 2*k*a - 4*rad).
+        local val is k^2 * a^2 * cos(alpha) + k^2 * a^2 - 2 * per.
+        set val to val / (2*k*a*cos(alpha) + 2*k*a - 4*per).
         return(val).
     }
 
     function getTheta {
-        parameter k, a, b, rad.
-        local val is a^2 + a*b*k - 2*a*rad - b^2 + rad^2.
-        set val to val/(a*b*k - a*k*rad).
+        parameter k, a, b, per.
+        local val is a^2 + a*b*k - 2*a*per - b^2 + per^2.
+        set val to val/(a*b*k - a*k*per).
         set val to arccos(val).
         return(val).
     }

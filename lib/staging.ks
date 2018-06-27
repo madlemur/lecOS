@@ -1,8 +1,11 @@
 @LAZYGLOBAL OFF.
-pout("LEC MANEUVER v%VERSION_NUMBER%").
+pout("LEC STAGING v%VERSION_NUMBER%").
 {
     local self is lexicon(
-        "stagingCheck", stagingCheck@
+        "stagingCheck", stagingCheck@,
+        "stageDeltaV", stageDeltaV@,
+        "burnTimeForDv", burnTimeForDv@,
+        "thrustToWeight", thrustToWeight@
     ).
 
     local engineModules is list("ModuleEngine", "ModuleEngineFX").
@@ -129,6 +132,28 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
             if amount > 0.01 return false.
         }
         return true.
+    }
+    // delta-V remaining for current stage
+    // + stageBurnTime updated with burn time at full throttle
+    function stageDeltaV {
+    	if stageAvgIsp = 0 or availableThrust = 0 {
+    		set stageBurnTime to 0.
+    		return 0.
+    	}
+
+    	set stageBurnTime to stageStdIsp*(ship:mass-stageDryMass)/availableThrust.
+    	return stageStdIsp*ln(ship:mass / stageDryMass).
+    }
+
+    // calculate burn time for maneuver needing provided deltaV
+    function burnTimeForDv {
+    	parameter dv.
+    	return stageStdIsp*ship:mass*(1-constant:e^(-dv/stageStdIsp))/availableThrust.
+    }
+
+    // current thrust to weght ratio
+    function thrustToWeight {
+    	return availableThrust/(ship:mass*body:mu)*(body:radius+altitude)^2.
     }
 
     export(self).
