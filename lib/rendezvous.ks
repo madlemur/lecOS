@@ -70,6 +70,33 @@
 
     function nextTransferManeuver {
         PARAMETER maxorb=10.
+        local currTA is SHIP:ORBIT:TRUEANOMALY.
+        local currEcc is SHIP:ORBIT:ECCENTRICITY.
+        if currEcc > 0.1 {
+            pout("Current orbit too eccentric, circularize first.").
+            return false.
+        }
+        if SHIP:ORBIT:APOAPSIS > TGT:ORBIT:PERIAPSIS {
+            pout("Current orbit must be wholly within the target orbit, lower the orbital altitude.").
+            return false.
+        }
+        local currEA is 2 * arctan( sqrt((1-currEcc)/(1+currEcc)) * tan(currTA/2)).
+
+        local tgtTA is TGT:ORBIT:TRUEANOMALY.
+        local tgtEcc is TGT:ORBIT:ECCENTRICITY.
+        local tgtSM is TGT:ORBIT:SEMIMAJORAXIS.
+        local tgtEA is 2 * arctan( sqrt((1-tgtEcc)/(1+tgtEcc)) * tan(tgtTA/2)).
+        local alpha is { parameter k. return arccos(((2 - 2*tgtEcc^2)/(k*(2-k)))-1). }.
+        local beta is { parameter k. return arccos( tgtEcc/k - 1/k*tgtEcc + 1/tgtEcc). }.
+        local intSM is { parameter k. local a is alpha(k). return ((tgtSM^2 * k^2 * cos(a) + tgtSM^2 * k^2 - 2 * currRAD^2)/(2*tgtSM*k*cos(a) + 2*tgtSM*k - 4*currRAD)). }.
+        local theta is { parameter k. local ism is intSM(k). return arccos((ism * currSM * k - 2 * currSM * currRAD + currRAD^2)/(ism * currSM * k - ism * k * currRAD)). }.
+        local intLongPeri is { parameter k. return beta(k) - theta(k). }.
+        local intEcc is { parameter k. return 1 - currRAD/intSM(k). }.
+        local intEA is { parameter k. local ecc is intEcc(k). local f is 180 - theta(k). return arccos((ecc + cos(f))/(1+ecc*cos(f))). }.
+        local arrival is { parameter k. return (((intSM(k)^(3/2)) * ( (intEA(k) - intEcc(k) * sin(intEA(k)))/180)). }.
+        local intV is { parameter k. 360 * sqrt( (2/(k*tgtSM)) - 1/intSM(k)). }.
+        local tgtV is { parameter k. 360 * sqrt( (2/(k*tgtSM)) - 1/tgtSM). }.
+
         // compute next transfer maneuver to target orbit
         return list(10,0,0,0).
     }
