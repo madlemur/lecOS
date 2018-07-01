@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC LAUNCH v%VERSION_NUMBER%").
+pout("LEC LAUNCH v%VERSION_NUMBER%").
 {
   local self is lex(
     "setLaunchParameters", slp@,

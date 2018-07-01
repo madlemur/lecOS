@@ -17,6 +17,7 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
     ).
     global import is {
         parameter n.
+        parameter dl is true.
         local f is libname(n).
         if d:haskey(f) {
             return d[f].
@@ -25,12 +26,19 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
             s:push(f).
             local p is "1:/"+n.
             if d:haskey("diskio") {
-                set p to d["diskio"]["loadfile"](n).
-                wait 0.
-                d["diskio"]["runfile"](p).
+                if dl {
+                    set p to d["diskio"]["loadfile"](n).
+                    d["diskio"]["runfile"](p).
+                } else {
+                    d["diskio"]["runfile"]("0:/"+n).
+                }
             } else {
-                copypath("0:/"+n, p).
-                RUNONCEPATH(p).
+                if dl {
+                    copypath("0:/"+n, p).
+                    RUNONCEPATH(p).
+                } else {
+                    RUNONCEPATH("0:/"+n).
+                }
             }
             return d[f].
         }
@@ -127,6 +135,19 @@ PRINT("LEC_OS v%VERSION_NUMBER%").
         KUNIVERSE:TIMEWARP:CANCELWARP().
         WAIT UNTIL SHIP:UNPACKED.
     }
+
+    global toIRF is {
+      // changes to inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter oldVec, SPV is SolarPrimeVector.
+      return V( oldVec:x * SPV:x + oldVec:z * SPV:z, oldVec:z * SPV:x - oldVec:x * SPV:z, oldVec:y).
+    }.
+
+    global fromIRF is {
+      // changes from inertial right-handed coordinate system where ix = SPV, iy = vcrs(SPV, V(0, 1, 0)), iz = V(0, 1, 0)
+      parameter irfVec, SPV is SolarPrimeVector.
+      return V( irfVec:x * SPV:x - irfVec:y * SPV:z, irfVec:z, irfVec:x * SPV:z + irfVec:y * SPV:x ).
+    }.
+
     global __ is boot_lib.
     global SAFENAME is padRep(0, "_", SHIP:NAME).
 }

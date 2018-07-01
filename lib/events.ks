@@ -1,4 +1,5 @@
 @LAZYGLOBAL OFF.
+pout("LEC EVENTS v%VERSION_NUMBER%").
 {
     local self is lex(
         "checkStaging", checkStaging@,
@@ -14,6 +15,7 @@
     local englist is false.
 
     local times is import("lib/time.ks").
+    local staging is import("lib/staging.ks").
 
     function checkStaging {
         parameter mission, name.
@@ -21,20 +23,9 @@
         if times["stageTime"]() < waitToStage {
           return false.
         }
-        // We're going to cache the engine list to avoid walking the part tree every tick.
-        if englist:istype("boolean") || englist:length = 0 {
-          pout("Enumerating engines", true).
-          list engines in englist.
-        }
-        local flameout is englist:length = 0.
-        if not flameout {
-            for eng in englist { if eng:flameout { set flameout to true. break. } }
-        }
-        if flameout  {
-          // Since an engine has flamed out, there's an implicit assumption that the engine list will change
-          set englist to false.
-          __["stage"]().
-          steeringmanager:resetpids().
+        if staging["checkStaging"]() {
+            _["stage"]().
+            steeringManager:resetPids().
         }
     }
 

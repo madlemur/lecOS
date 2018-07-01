@@ -1,16 +1,11 @@
 @LAZYGLOBAL OFF.
 {
-  local diskio is import("lib/diskio.ks").
-
-  import("lib/text.ks").
-
-  local mission is import("lib/mission.ks").
-  diskio["delfile"]("lib/mission.ks").
-
-  local events is import("lib/events.ks").
-
-  import("lib/launch.ks").
-  diskio["delfile"]("lib/launch.ks").
+  import("lib/diskio.ks", false).
+  import("lib/text.ks", false).
+  import("lib/staging.ks", false).
+  local mission is import("lib/mission.ks", false).
+  local events is import("lib/events.ks", false).
+  import("lib/launch.ks", false).
 
   mission["loadMission"]("Missions/template.ks").
 

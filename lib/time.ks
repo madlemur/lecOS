@@ -10,6 +10,7 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
     ).
 
     local TIMES is lexicon("STAGE", -9999999).
+    
     FUNCTION hasTime {
       PARAMETER n.
       return TIMES:haskey(n).
