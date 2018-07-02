@@ -1,6 +1,12 @@
 @LAZYGLOBAL OFF.
+PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
 {
-    local self is lex().
+    local self is lex(
+      "setTarget", setTarget@,
+      "matchPlaneManeuver", matchPlaneManeuver@,
+      "nextTransferManeuver", nextTransferManeuver@,
+      "matchVelocityManeuver", matchVelocityManeuver@
+    ).
     local tgt is false.
     local tgt_off is 0.
 
