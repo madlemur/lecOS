@@ -28,10 +28,12 @@ pout("LEC NODE v%VERSION_NUMBER%").
         local nodename is "node_" + SAFENAME + padRep(2,"0",burntime:YEAR - 1) + ":" + padRep(3,"0",burntime:DAY - 1) + ":" + burntime:CLOCK.
         times["settime"](nodename, burntime).
 
-
         local newNode is lexicon(
             "eta", times["diffTime"]:bind(nodename),
-        )
+            "deltaV", deltaV
+        ).
+
+
     }
 
     function executeNode {}

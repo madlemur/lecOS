@@ -8,7 +8,7 @@
         "Launch", { parameter mission. if ship:status = "PRELAUNCH" and TIME:SECONDS > l_time mission["startEvent"]("staging"). if SHIP:AIRSPEED > 100 { mission["next"](). } },
         "Turn", { parameter mission. ascendControls(). mission["next"](). },
         "Ascend", { parameter mission. ascendControls(). if ship:apoapsis > 100000 and ship:altitude > body:atm:height { RCS ON. mission["next"](). } },
-        "Coast", { parameter mission. set st to heading(launch["circ_heading"](), launch["circ_pitch"]()). set th to 0. if ship:altitude > ship:apoapsis or eta:periapsis < eta:apoapsis { mission["next"](). } },
+        "Coast", { parameter mission. circControls(true). if ship:altitude > ship:apoapsis or eta:periapsis < eta:apoapsis { mission["next"](). } },
         "Circularize", { parameter mission. circControls(). if launch["circularized"]() { mission["next"](). } },
         "Finish", { parameter mission. lock throttle to 0. lock steering to body("sun"):position. wait(15). RCS OFF. unlock throttle. unlock steering. mission["endMission"](). }
     ).
@@ -22,8 +22,10 @@
     }
 
     function circControls {
-        set th to launch["circ_thrott"]().
-        set st to heading(launch["circ_heading"](), launch["circ_pitch"]()).
+        parameter steerOnly is false.
+        if NOT steerOnly
+            set th to launch["circ_thrott"]().
+        set st to lookdirup(launch["circ_deltav"](), ship:up:vector).
     }
 
     mission["setSequence"](mission_list).

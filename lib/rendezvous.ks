@@ -75,7 +75,9 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
     }
 
     function nextTransferManeuver {
+        PARAMETER maxSeparation=0.01. // In degrees of True Anomaly
         PARAMETER maxorb=10.
+        local currOrbit is 0.
         local currTA is SHIP:ORBIT:TRUEANOMALY.
         local currEcc is SHIP:ORBIT:ECCENTRICITY.
         if currEcc > 0.01 {
@@ -101,7 +103,7 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
         local intEcc is { parameter k. return 1 - currRAD/intSM(k). }.
         local intEA is { parameter k. parameter prePeri is false. local ecc is intEcc(k). local f is 0. if prePeri { set f to 180 + theta(k). } else { set f to 180 - theta(k). } return arccos((ecc + cos(f))/(1+ecc*cos(f))). }.
         local arrival is { parameter k. parameter prePeri is false. return (((intSM(k)^(3/2)) * ( (intEA(k, prePeri) - intEcc(k) * sin(intEA(k, prePeri)))/180)). }.
-        local departure is { parameter k. parameter prePeri is false. return ((__["mAngle"](intLongPeri(k, prePeri) - currTA)/360 * SHIP:ORBIT:PERIOD). }.
+        local departure is { parameter k. parameter prePeri is false. return (((__["mAngle"](intLongPeri(k, prePeri) - currTA)/360) + currOrbit) * SHIP:ORBIT:PERIOD). }.
         local intV is { parameter k. return sqrt( BODY:MU * ((2/(k*tgtSM)) - 1/intSM(k))). }.
         local intVi is { parameter k. return sqrt(BODY:MU/currRAD). }.
         local tgtV is { parameter k. return sqrt( BODY:MU * ((2/(k*tgtSM)) - 1/tgtSM)). }.
@@ -109,7 +111,7 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
         local tgtTAint is {
             parameter k.
             parameter prePeri is false.
-            local t is arrival(k, prePeri).
+            local t is arrival(k, prePeri) + departure(k, prePeri) + SHIP:ORBIT:PERIOD * currOrbit.
             local b is sqrt(body:mu/tgtSM^3) * t.
             local c is 6 - 6 * tgtEcc.
             local d is -6 * b.

@@ -2,15 +2,16 @@
 pout("LEC LAUNCH v%VERSION_NUMBER%").
 {
   local self is lex(
-    "setLaunchParameters", slp@,
-    "calcLaunchDetails", cld@,
+    "setLaunchParameters", setLaunchParameters@,
+    "calcLaunchDetails", calcLaunchDetails@,
     "getPitch", getPitch@,
     "getBearing", getBearing@,
     "getThrottle", getThrottle@,
     "circularized", circularized@,
     "circ_thrott", circ_thrott@,
     "circ_heading", compass_of_vel@,
-    "circ_pitch", circ_pitch@
+    "circ_pitch", circ_pitch@,
+    "circ_deltav", circ_deltav@
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
@@ -20,8 +21,11 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   local LCH_AN is 0.
   local LCH_APO is 0.
   local HALF_LAUNCH is 145.
+  local timeout is 9000.
+  local staging is import("lib/staging.ks").
+  local times is import("lib/time.ks").
 
-  function slp {
+  function setLaunchParameters {
     // Altitude at which the pitchover begins
     PARAMETER p_a IS 250.
     // Altitude at which the pitchover ends
@@ -33,35 +37,35 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     SET c_del to c_d.
   }
 
-  function cld {
+  function calcLaunchDetails {
     // The desireed orbital height
     PARAMETER l_alt.
     // orbit inclination
     PARAMETER l_inc IS 0.
     // longitude of ascending node
-    PARAMETER l_lan IS SHIP:OBT:LAN.
+    PARAMETER l_lan IS __["mAngle"](SHIP:OBT:LAN + 5).
     SET LCH_AN to l_lan.
     SET LCH_I to l_inc.
     SET LCH_ORBIT_VEL to SQRT(BODY:MU/(BODY:RADIUS + l_alt)).
     SET LCH_APO to l_alt.
 
-    LOCAL az IS azm(l_inc).
-    IF az < 0 { RETURN npld(l_alt,l_inc,l_lan). }
-    ELSE { RETURN ld(l_alt,l_inc,l_lan,az). }
+    LOCAL az IS azimuth(l_inc).
+    IF az < 0 { RETURN noPassLaunchDetails(l_alt,l_inc,l_lan). }
+    ELSE { RETURN launchDetails(l_alt,l_inc,l_lan,az). }
 
   }
 
-  FUNCTION azm {
+  FUNCTION azimuth {
     PARAMETER i.
     IF latIncOk(LATITUDE,i) { RETURN __["mAngle"](ARCSIN(COS(i) / COS(LATITUDE))). }
     RETURN -1.
   }
 
-  FUNCTION lazm {
+  FUNCTION launchAzimuth {
     PARAMETER planet, az, ap.
 
     LOCAL v_orbit IS SQRT(planet:MU/(planet:RADIUS + ap)).
-    LOCAL v_rot IS ssal(planet,LATITUDE).
+    LOCAL v_rot IS planetSurfaceSpeedAtLat(planet,LATITUDE).
     LOCAL v_orbit_x IS v_orbit * SIN(az).
     LOCAL v_orbit_y IS v_orbit * COS(az).
     LOCAL raz IS __["mAngle"](90 - ARCTAN2(v_orbit_y, v_orbit_x - v_rot)).
@@ -70,7 +74,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     RETURN raz.
   }
 
-  FUNCTION ssal {
+  FUNCTION planetSurfaceSpeedAtLat {
     PARAMETER planet, lat.
 
     LOCAL v_rot IS 0.
@@ -80,7 +84,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     RETURN v_rot.
   }
 
-  FUNCTION npld {
+  FUNCTION noPassLaunchDetails {
     PARAMETER ap,i,lan.
 
     LOCAL az IS 90.
@@ -90,21 +94,21 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     IF i = 0 OR i = 180 { RETURN LIST(az,0). }
 
     LOCAL peta IS 0.
-    IF LATITUDE > 0 { SET peta TO etop(TRUE,BODY,lan,i,lat,LONGITUDE). }
-    ELSE { SET peta TO etop(FALSE,BODY,lan,i,-lat,LONGITUDE). }
+    IF LATITUDE > 0 { SET peta TO etaToOrbitalPlane(TRUE,BODY,lan,i,lat,LONGITUDE). }
+    ELSE { SET peta TO etaToOrbitalPlane(FALSE,BODY,lan,i,-lat,LONGITUDE). }
     LOCAL launch_time IS TIME:SECONDS + peta - HALF_LAUNCH.
     RETURN LIST(az,launch_time).
   }
 
-  FUNCTION ld {
+  FUNCTION launchDetails {
     PARAMETER ap,i,lan,az.
 
     LOCAL peta IS 0.
-    SET az TO lazm(BODY,az,ap).
-    LOCAL etan IS etop(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
-    LOCAL etdn IS etop(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
+    SET az TO launchAzimuth(BODY,az,ap).
+    LOCAL etan IS etaToOrbitalPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
+    LOCAL etdn IS etaToOrbitalPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
-    IF etdn < 0 AND etan < 0 { RETURN npld(ap,i,lan). }
+    IF etdn < 0 AND etan < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
     ELSE IF (etdn < etan OR etan < HALF_LAUNCH) AND etdn >= HALF_LAUNCH {
       SET peta TO etdn.
       SET az TO __["mAngle"](180 - az).
@@ -119,7 +123,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     RETURN (i > 0 AND ABS(lat) < 90 AND MIN(i,180-i) >= ABS(lat)).
   }
 
-  FUNCTION etop {
+  FUNCTION etaToOrbitalPlane {
     PARAMETER is_AN, planet, orb_lan, i, ship_lat, ship_lng.
 
     LOCAL peta IS -1.
@@ -152,7 +156,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     return c_del().
   }
   function getThrottle {
-    if ship:apoapsis < LCH_APO return 1.1 - min(1, max(0, (ship:apoapsis/LCH_APO)^3)).
+    if ship:apoapsis < LCH_APO return 1.05 - min(1, max(0, (ship:apoapsis/LCH_APO)^4)).
     return 0.
   }
   LOCAL HALF_LAUNCH IS 145.
@@ -190,22 +194,48 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     }
 
     function circ_thrott {
-      if abs(steeringmanager:yawerror) < 2 and
-           abs(steeringmanager:pitcherror) < 2 and
-           abs(steeringmanager:rollerror) < 2 {
-               return 0.02 + (30*ship:obt:eccentricity).
-      } else {
-          return 0.
-      }
+        parameter deltav.
+        if abs(eta_ap_with_neg()) < staging["burnTimeForDv"](deltav:magnitude)/2 {
+            if not times["hasTime"]("circ") {
+                times["setTime"]("circ")
+            }
+        }
+        if times["hasTime"]("circ") {
+            if vang(ship:facing:vector,deltav) > 1 { return 0. } //Throttle to 0 if not pointing the right way
+	        else { return max(0,min(1,deltav:mag/10)). } //lower throttle gradually as remaining deltaV gets lower
+        }
+        return 0.
+    }
+
+    function circ_deltav {
+        local ovel is ship:velocityat(eta:apoapsis).
+        set vecNormal to vcrs(up:vector,ovel).
+	    set vecHorizontal to vxcl(up:vector, ovel)
+	    set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
+	    return vecHorizontal - ovel. //deltaV as a vector
     }
 
     function circularized {
-      if (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
-        unlock steering.
-        unlock throttle.
-        return true.
-      }
-      return false.
+        local dv is circ_deltav().
+        if dv:magnitude < 0.02 {
+            pout("Circularization complete. ecc=" + ship:obt:ECCENTRICITY).
+            unlock steering.
+            unlock throttle.
+            set timeout to 9000.
+            return true.
+        }
+        if (times["hasTime"]("circ") AND times["diffTime"]("circ") > timeout) {
+            pout("Circularize timed out.").
+            unlock steering.
+            unlock throttle.
+            set timeout to 9000.
+            return true.
+        }
+        if (dv:magnitude < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 3) {
+            times["setTime"]("circ").
+            set timeout to 3.
+        }
+        return false.
     }
 
   export(self).

@@ -9,11 +9,11 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     ).
 
     local engineModules is list("ModuleEngine", "ModuleEngineFX").
-    local stagingConsumed is uniqueset("SolidFuel", "LiquidFuel", "Oxidizer", "Karbonite").
+    local stagingConsumed is uniqueset("SolidFuel", "LiquidFuel", "Oxidizer", "Karbonite", "Monopropellant").
 
     // list of fuels for empty-tank identification (for dual-fuel tanks use only one of the fuels)
     // note: SolidFuel is in list for booster+tank combo, both need to be empty to stage
-    local stagingTankFuels is uniqueset("SolidFuel", "LiquidFuel", "Karbonite"). //Oxidizer intentionally not included (would need extra logic)
+    local stagingTankFuels is uniqueset("SolidFuel", "LiquidFuel", "Karbonite", "Monopropellant"). //Oxidizer intentionally not included (would need extra logic)
 
     // list of modules that identify decoupler
     local stagingDecouplerModules is list("ModuleDecouple", "ModuleAnchoredDecoupler").
@@ -60,6 +60,7 @@ pout("LEC STAGING v%VERSION_NUMBER%").
 
     	if not stage:READY
             return.
+        local thisStageConsumes is UniqueSet().
     	set stagingNumber to stage:number.
     	if stagingResetMax and stagingMaxStage >= stagingNumber
     		set stagingMaxStage to 0.
@@ -83,12 +84,21 @@ pout("LEC STAGING v%VERSION_NUMBER%").
         local flow is 0.
     	for e in engines if e:ignition and e:isp > 0
     	{
-    		if stagingDecoupledIn(e) = stage:number-1
+    		if stagingDecoupledIn(e) = stage:number-1 {
     			stagingEngines:add(e).
-
+            }
     		local t is e:availableThrust.
     		set thrust to thrust + t.
     		set flow to flow + t / e:isp. // thrust=isp*g0*dm/dt => flow = sum of thrust/isp
+            local emods is e:MODULES:ITERATOR.
+            local emod is false.
+            until NOT emods:NEXT() {
+                set emod to emods:value().
+                if engineModules:CONTAINS(emod:NAME) {
+                    
+                }
+            }
+
     	}
     	set stageAvgIsp to 0.
         if flow > 0 set stageAvgIsp to thrust/flow.
