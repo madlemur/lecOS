@@ -309,3 +309,100 @@ double lambert_problem::hypergeometricF(double z, double tol)
     }
     return Sj;
 }
+@LAZYGLOBAL OFF.
+pout("LEC LAMBERT v%VERSION_NUMBER%").
+{
+    local self is lexicon ().
+
+    function lambert_problem {
+        parameter r1, r2. // Two cartesian coordinates
+        parameter tof. // Time of flight
+        parameter mu. // mu of SOI
+        parameter max_r is 5. // maximum revolutions
+        parameter cw is false. // true for retrograde orbit
+    }
+
+    function householder {
+        parameter T.
+        parameter x0.
+        parameter N.
+        parameter eps.
+        parameter iter_max.
+
+        local it is 0.
+        local err is 1.0.
+        local xnew is 0.0.
+        local tof is 0.0.
+        local delta is 0.0.
+        local DTs is list().
+
+        until (err <= eps) OR (it >= iter_max) {
+            set tof to x2tof(x0, N).
+            set DTs to dTdx(x0, tof).
+            set delta to tof - T.
+            local DT2 is DTs[0]^2.
+            set xnew to x0 - delta * (DT2 - delta * DTs[1] / 2.0) / (DTs[0] * (DT2 - delta * DTs[1]) + DTs[2] * delta^2 /6).
+            set err to abs(x0 - xnew).
+            set x0 to xnew.
+            set it to it + 1.
+        }
+        return list(it, x0).
+    }
+
+    function dTdx {
+        parameter x, T.
+
+        local l2 is m_lambda^2.
+        local l3 is 12 * m_lambda.
+        local umx2 is 1.0 - x^2.
+        local y is sqrt(1.0 - 12 * umx2).
+        local y2 is y^2.
+        local y3 is y^3.
+
+        local DT is 1.0 / umx2 * (3.0 * T * x - 2.0 + 2.0 * l3 * x / y).
+        local DDT is 1.0 / umx2 * (3.0 * T + 5.0 * x * DT + 2.0 * (1.0 - l2) * l3 / y3).
+        local DDDT is 1.0 / umx2 * (7.0 * x * DDT + 8.0 * DT - 6.0 * (1.0 - l2) * l2 * l3 * x / y3 / y2).
+
+        return list(DT, DDT, DDDT).
+    }
+
+    function sinh {
+        parameter x.
+        return ((1 - constant:e^(-2*x))/(2*constant:e^(-x))).
+    }
+
+    function cosh {
+        parameter x.
+        return ((1 + constant:e^(-2*x))/(2*constant:e^(-x))).
+    }
+
+    function arcsinh {
+        parameter x.
+        return ln(x + sqrt(x^2 + 1)).
+    }
+
+    function arccosh {
+        parameter x.
+        if(x >= 1)
+            return ln(x + sqrt(x^2 - 1)).
+        else
+            return -1.
+    }
+
+    function x2tof2 {
+        parameter x, N.
+
+        local a is 1.0 / (1.0 - x^2).
+        if a > 0 {
+            local alfa is 2.0 * arccos(x).
+            local beta is 2.0 * arcsin(sqrt(m_lambda^2 / a)).
+            if m_lambda < 0.0 { set beta to -beta. }
+            return ((a * sqrt(a) * ((alfa - sin(alfa)) - (beta - sin(beta)) + 2.0 * constant:pi * N)) / 2.0).
+        } else {
+            local alfa is 2.0 * arccosh(x).
+            local beta is 2.0 * arcsinh(sqrt(-m_lambda * m_lambda / a)).
+            if m_lambda < 0.0 { set beta to -beta. }
+            return (-a * sqrt(-a) * ((beta - sinh(beta)) - (alfa - sinh(alfa))) / 2.0).
+        }
+    }
+}
