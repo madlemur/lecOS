@@ -24,7 +24,7 @@
     function circControls {
         local dv is launch["circ_deltav"]().
         set th to launch["circ_thrott"](dv).
-        set st to lookdirup(dv, ship:up:vector).
+        set st to lookdirup(dv, -body:position).
     }
 
     mission["setSequence"](mission_list).
