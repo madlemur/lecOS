@@ -15,15 +15,15 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
-  local c_del is { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/c_alt)),45-VERTICALSPEED))). }.
+  local c_del is { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-3, MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
   local LCH_I IS 0.
   local LCH_ORBIT_VEL is 0.
   local LCH_AN is 0.
   local LCH_APO is 0.
   local HALF_LAUNCH is 145.
   local timeout is 9000.
-  local staging is import("lib/staging.ks").
-  local times is import("lib/time.ks").
+  local staging is import("lib/staging.ks", false).
+  local times is import("lib/time.ks", false).
 
   function setLaunchParameters {
     // Altitude at which the pitchover begins
@@ -31,7 +31,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     // Altitude at which the pitchover ends
     PARAMETER c_a IS BODY:ATM:HEIGHT * 0.9.
     // The function that gets from one to the other
-    PARAMETER c_d IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(0, MAX(90 * (1 - SQRT(ALTITUDE/c_alt)),45-VERTICALSPEED))). }.
+    PARAMETER c_d IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-3, MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
     SET p_alt to p_a.
     SET c_alt to c_a.
     SET c_del to c_d.
@@ -43,7 +43,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     // orbit inclination
     PARAMETER l_inc IS 0.
     // longitude of ascending node
-    PARAMETER l_lan IS __["mAngle"](SHIP:OBT:LAN + 5).
+    PARAMETER l_lan IS __["mAngle"](SHIP:OBT:LAN).
     SET LCH_AN to l_lan.
     SET LCH_I to l_inc.
     SET LCH_ORBIT_VEL to SQRT(BODY:MU/(BODY:RADIUS + l_alt)).
@@ -156,7 +156,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     return c_del().
   }
   function getThrottle {
-    if ship:apoapsis < LCH_APO return 1.05 - min(1, max(0, (ship:apoapsis/LCH_APO)^4)).
+    if maxthrust > 0 and ship:velocity:orbit:mag < LCH_ORBIT_VEL return 1.05 - min(1, max(0, (ship:velocity:orbit:mag/LCH_ORBIT_VEL)^4)).
     return 0.
   }
   LOCAL HALF_LAUNCH IS 145.
@@ -195,33 +195,39 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
 
     function circ_thrott {
         parameter deltav.
-        if abs(eta_ap_with_neg()) < staging["burnTimeForDv"](deltav:magnitude)/2 {
-            if not times["hasTime"]("circ") {
-                times["setTime"]("circ")
-            }
+        if not times["hasTime"]("circ") and eta:apoapsis < (staging["burnTimeForDv"](deltav:mag)/2) {
+          pout("eta: " + eta:apoapsis).
+          pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
+          pout("deltav: " + deltav:mag).
+          times["setTime"]("circ").
         }
         if times["hasTime"]("circ") {
-            if vang(ship:facing:vector,deltav) > 1 { return 0. } //Throttle to 0 if not pointing the right way
+          if maxthrust < 0.05 or vang(ship:facing:vector,deltav) > 2 { return 0. } //Throttle to 0 if not pointing the right way
 	        else { return max(0,min(1,deltav:mag/10)). } //lower throttle gradually as remaining deltaV gets lower
         }
         return 0.
     }
 
     function circ_deltav {
-        local ovel is ship:velocityat(eta:apoapsis).
-        set vecNormal to vcrs(up:vector,ovel).
-	    set vecHorizontal to vxcl(up:vector, ovel)
-	    set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
+        local ovel is velocityat(ship, TIME:SECONDS + eta:apoapsis):orbit.
+	      local vecHorizontal is vxcl(positionat(ship, TIME:SECONDS + eta:apoapsis) + ship:position - body:position, ovel).
+	      set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
+        clearvecdraws().
+        local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
+        local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
+        local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
+
 	    return vecHorizontal - ovel. //deltaV as a vector
     }
 
     function circularized {
         local dv is circ_deltav().
-        if dv:magnitude < 0.02 {
+        if dv:mag < 0.02 {
             pout("Circularization complete. ecc=" + ship:obt:ECCENTRICITY).
             unlock steering.
             unlock throttle.
             set timeout to 9000.
+            clearvecdraws().
             return true.
         }
         if (times["hasTime"]("circ") AND times["diffTime"]("circ") > timeout) {
@@ -229,9 +235,10 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
             unlock steering.
             unlock throttle.
             set timeout to 9000.
+            clearvecdraws().
             return true.
         }
-        if (dv:magnitude < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 3) {
+        if (dv:mag < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 3) {
             times["setTime"]("circ").
             set timeout to 3.
         }

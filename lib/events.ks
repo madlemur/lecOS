@@ -14,8 +14,8 @@ pout("LEC EVENTS v%VERSION_NUMBER%").
     local minScience is 5.
     local englist is false.
 
-    local times is import("lib/time.ks").
-    local staging is import("lib/staging.ks").
+    local times is import("lib/time.ks", false).
+    local staging is import("lib/staging.ks", false).
 
     function checkStaging {
         parameter mission, name.
@@ -23,8 +23,8 @@ pout("LEC EVENTS v%VERSION_NUMBER%").
         if times["stageTime"]() < waitToStage {
           return false.
         }
-        if staging["checkStaging"]() {
-            _["stage"]().
+        if staging["stagingCheck"]() {
+            __["stage"]().
             steeringManager:resetPids().
         }
     }
@@ -42,6 +42,7 @@ pout("LEC EVENTS v%VERSION_NUMBER%").
                 // and jettisons them (PF uses the word jettison in the right click menu instead of deploy)
                 module:DOEVENT("jettison").
             }.
+            mission["startEvent"]("panels").
             mission["delEvent"](name).
         }
     }
@@ -52,6 +53,9 @@ pout("LEC EVENTS v%VERSION_NUMBER%").
             pout("Deploying solar panels").
             panels on.
             mission["delEvent"](name).
+        }
+        if mission["hasEvent"]("fairings") {
+          mission["pauseEvent"](name).
         }
     }
     export(self).

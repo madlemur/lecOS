@@ -69,6 +69,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
           for event in events:keys {
               if events[event][0] {
                   events[event][1](self, event).
+              } else {
               }
           }
         }
@@ -135,6 +136,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function pauseEvent {
         PARAMETER name.
         if hasEvent(name) {
+          pout("Disabling event " + name).
             local evt is events[name].
             set events[name] to list(false, evt[1]).
         }
@@ -142,6 +144,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function startEvent {
         PARAMETER name.
         if hasEvent(name) {
+          pout("Enabling event " + name).
             local evt is events[name].
             set events[name] to list(true, evt[1]).
         }

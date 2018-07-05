@@ -9,10 +9,10 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
         "stageTime", diffTime@:bind("STAGE")
     ).
 
-    local TIMES is lexicon("STAGE", -9999999).
+    local TIMES is lexicon("STAGE", -1).
 
-    if EXISTS("0:/times.json") {
-        set TIMES to READJSON("0:/times.json").
+    if EXISTS("times.json") {
+        set TIMES to READJSON("times.json").
     }
 
     FUNCTION hasTime {
@@ -40,7 +40,7 @@ PRINT("LEC TIME v%VERSION_NUMBER%").
     }
 
     FUNCTION saveTimes {
-        WRITEJSON(TIMES, "0:/times.json").
+        WRITEJSON(TIMES, "times.json").
     }
 
     export(self).

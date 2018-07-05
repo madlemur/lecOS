@@ -57,10 +57,11 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     }
     // to be called whenever current stage changes to prepare data for quicker test and other functions
     function stagingPrepare {
-
+      local l_parts is 0.
+      local l_engines is 0.
     	if not stage:READY
             return.
-        local thisStageConsumes is UniqueSet().
+      local thisStageConsumes is UniqueSet().
     	set stagingNumber to stage:number.
     	if stagingResetMax and stagingMaxStage >= stagingNumber
     		set stagingMaxStage to 0.
@@ -68,36 +69,32 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     	stagingTanks:clear().
 
     	// prepare list of tanks that are to be decoupled and have some fuel
-    	list parts in parts.
-    	for p in parts {
+    	list parts in l_parts.
+    	for p in l_parts {
     		local amount is 0.
-    		for r in p:resources if stagingTankFuels:contains(r:name)
-    			set amount to amount + r:amount.
-    		if amount > 0.01 and stagingDecoupledIn(p) = stage:number-1
-    			stagingTanks:add(p).
+        local res is 0.
+    		for res in p:resources {
+          if stagingTankFuels:contains(res:name)
+    			   set amount to amount + res:amount.
+        }
+        if amount > 0.01 and stagingDecoupledIn(p) = stage:number-1
+           stagingTanks:add(p).
     	}
 
     	// prepare list of engines that are to be decoupled by staging
     	// and average ISP for stageDeltaV()
-    	list engines in engines.
+    	list engines in l_engines.
     	local thrust is 0.
         local flow is 0.
-    	for e in engines if e:ignition and e:isp > 0
+        local eng is 0.
+    	for eng in l_engines if eng:ignition and eng:isp > 0
     	{
-    		if stagingDecoupledIn(e) = stage:number-1 {
-    			stagingEngines:add(e).
-            }
-    		local t is e:availableThrust.
+    		if stagingDecoupledIn(eng) = stage:number-1 {
+    			stagingEngines:add(eng).
+        }
+    		local t is eng:availableThrust.
     		set thrust to thrust + t.
-    		set flow to flow + t / e:isp. // thrust=isp*g0*dm/dt => flow = sum of thrust/isp
-            local emods is e:MODULES:ITERATOR.
-            local emod is false.
-            until NOT emods:NEXT() {
-                set emod to emods:value().
-                if engineModules:CONTAINS(emod:NAME) {
-                    
-                }
-            }
+    		set flow to flow + t / eng:isp. // thrust=isp*g0*dm/dt => flow = sum of thrust/isp
 
     	}
     	set stageAvgIsp to 0.
@@ -106,20 +103,22 @@ pout("LEC STAGING v%VERSION_NUMBER%").
 
     	// prepare dry mass for stageDeltaV()
         local fuelMass is 0.
-        for r in stage:resources if stagingConsumed:contains(r:name)
-    		set fuelMass to fuelMass + r:amount*r:density.
-    	set stageDryMass to ship:mass-fuelMass.
+        for res in stage:resources {
+          if stagingConsumed:contains(res:name)
+    		    set fuelMass to fuelMass + res:amount*res:density.
+        }
+    	  set stageDryMass to ship:mass-fuelMass.
     }
 
     // to be called repeatedly
     function stagingCheck {
     	if (not stage:ready)
         or (stage:number <> stagingNumber and not stagingPrepare())
-    	or (stage:number <= stagingMaxStage)
+    	  or (stage:number <= stagingMaxStage)
     		return false.
 
     	// check staging conditions and return true if staged, false otherwise
-    	if availableThrust = 0 or checkEngines() or checkTanks() {
+    	if availableThrust < 0.001 or checkEngines() or checkTanks() {
     		return true.
     	}
     	return false.
@@ -127,7 +126,8 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     // need to stage because all engines are without fuel?
     function checkEngines {
         if stagingEngines:empty return false.
-        for e in stagingEngines if not e:flameout
+        local eng is 0.
+        for eng in stagingEngines if not eng:flameout
             return false.
         return true.
     }
@@ -137,8 +137,9 @@ pout("LEC STAGING v%VERSION_NUMBER%").
         if stagingTanks:empty return false.
         for t in stagingTanks {
             local amount is 0.
-            for r in t:resources if stagingTankFuels:contains(r:name)
-                set amount to amount + r:amount.
+            local res is 0.
+            for res in t:resources if stagingTankFuels:contains(res:name)
+                set amount to amount + res:amount.
             if amount > 0.01 return false.
         }
         return true.
@@ -146,7 +147,7 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     // delta-V remaining for current stage
     // + stageBurnTime updated with burn time at full throttle
     function stageDeltaV {
-    	if stageAvgIsp = 0 or availableThrust = 0 {
+    	if stageAvgIsp < 0.01 or availableThrust < 0.01 or stageStdIsp < 0.01 {
     		set stageBurnTime to 0.
     		return 0.
     	}
@@ -158,6 +159,7 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     // calculate burn time for maneuver needing provided deltaV
     function burnTimeForDv {
     	parameter dv.
+      if (availableThrust < 0.01 or stageStdIsp < 0.01) { return 2^32. }
     	return stageStdIsp*ship:mass*(1-constant:e^(-dv/stageStdIsp))/availableThrust.
     }
 
