@@ -206,109 +206,7 @@ lambert_problem::lambert_problem(const array3D &r1, const array3D &r2, const dou
     }
 }
 
-int lambert_problem::householder(const double T, double &x0, const int N, const double eps, const int iter_max)
-{
-    int it = 0;
-    double err = 1.0;
-    double xnew = 0.0;
-    double tof = 0.0, delta = 0.0, DT = 0.0, DDT = 0.0, DDDT = 0.0;
-    while ((err > eps) && (it < iter_max)) {
-        x2tof(tof, x0, N);
-        dTdx(DT, DDT, DDDT, x0, tof);
-        delta = tof - T;
-        double DT2 = DT * DT;
-        xnew = x0 - delta * (DT2 - delta * DDT / 2.0) / (DT * (DT2 - delta * DDT) + DDDT * delta * delta / 6.0);
-        err = fabs(x0 - xnew);
-        x0 = xnew;
-        it++;
-    }
-    return it;
-}
 
-void lambert_problem::dTdx(double &DT, double &DDT, double &DDDT, const double x, const double T)
-{
-    double l2 = m_lambda * m_lambda;
-    double l3 = l2 * m_lambda;
-    double umx2 = 1.0 - x * x;
-    double y = sqrt(1.0 - l2 * umx2);
-    double y2 = y * y;
-    double y3 = y2 * y;
-    DT = 1.0 / umx2 * (3.0 * T * x - 2.0 + 2.0 * l3 * x / y);
-    DDT = 1.0 / umx2 * (3.0 * T + 5.0 * x * DT + 2.0 * (1.0 - l2) * l3 / y3);
-    DDDT = 1.0 / umx2 * (7.0 * x * DDT + 8.0 * DT - 6.0 * (1.0 - l2) * l2 * l3 * x / y3 / y2);
-}
-
-void lambert_problem::x2tof2(double &tof, const double x, const int N)
-{
-    double a = 1.0 / (1.0 - x * x);
-    if (a > 0) // ellipse
-    {
-        double alfa = 2.0 * acos(x);
-        double beta = 2.0 * asin(sqrt(m_lambda * m_lambda / a));
-        if (m_lambda < 0.0) beta = -beta;
-        tof = ((a * sqrt(a) * ((alfa - sin(alfa)) - (beta - sin(beta)) + 2.0 * M_PI * N)) / 2.0);
-    } else {
-        double alfa = 2.0 * boost::math::acosh(x);
-        double beta = 2.0 * boost::math::asinh(sqrt(-m_lambda * m_lambda / a));
-        if (m_lambda < 0.0) beta = -beta;
-        tof = (-a * sqrt(-a) * ((beta - sinh(beta)) - (alfa - sinh(alfa))) / 2.0);
-    }
-}
-
-void lambert_problem::x2tof(double &tof, const double x, const int N)
-{
-    double battin = 0.01;
-    double lagrange = 0.2;
-    double dist = fabs(x - 1);
-    if (dist < lagrange && dist > battin) { // We use Lagrange tof expression
-        x2tof2(tof, x, N);
-        return;
-    }
-    double K = m_lambda * m_lambda;
-    double E = x * x - 1.0;
-    double rho = fabs(E);
-    double z = sqrt(1 + K * E);
-    if (dist < battin) { // We use Battin series tof expression
-        double eta = z - m_lambda * x;
-        double S1 = 0.5 * (1.0 - m_lambda - x * eta);
-        double Q = hypergeometricF(S1, 1e-11);
-        Q = 4.0 / 3.0 * Q;
-        tof = (eta * eta * eta * Q + 4.0 * m_lambda * eta) / 2.0 + N * M_PI / pow(rho, 1.5);
-        return;
-    } else { // We use Lancaster tof expresion
-        double y = sqrt(rho);
-        double g = x * z - m_lambda * E;
-        double d = 0.0;
-        if (E < 0) {
-            double l = acos(g);
-            d = N * M_PI + l;
-        } else {
-            double f = y * (z - m_lambda * x);
-            d = log(f + g);
-        }
-        tof = (x - m_lambda * z - d / y) / E;
-        return;
-    }
-}
-
-double lambert_problem::hypergeometricF(double z, double tol)
-{
-    double Sj = 1.0;
-    double Cj = 1.0;
-    double err = 1.0;
-    double Cj1 = 0.0;
-    double Sj1 = 0.0;
-    int j = 0;
-    while (err > tol) {
-        Cj1 = Cj * (3.0 + j) * (1.0 + j) / (2.5 + j) * z / (j + 1);
-        Sj1 = Sj + Cj1;
-        err = fabs(Cj1);
-        Sj = Sj1;
-        Cj = Cj1;
-        j = j + 1;
-    }
-    return Sj;
-}
 @LAZYGLOBAL OFF.
 pout("LEC LAMBERT v%VERSION_NUMBER%").
 {
@@ -320,6 +218,25 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
         parameter mu. // mu of SOI
         parameter max_r is 5. // maximum revolutions
         parameter cw is false. // true for retrograde orbit
+
+        if (tof <= 0) {
+            pout("Time of flight is negative!").
+            return false.
+        }
+        if (mu <= 0) {
+            pout("Gravity parameter is zero or negative!").
+            return false.
+        }
+        m_c = sqrt((r2[0] - r1[0]) * (r2[0] - r1[0]) + (r2[1] - r1[1]) * (r2[1] - r1[1])
+                   + (r2[2] - r1[2]) * (r2[2] - r1[2]));
+        double R1 = norm(m_r1);
+        double R2 = norm(m_r2);
+        m_s = (m_c + R1 + R2) / 2.0;
+        array3D ir1, ir2, ih, it1, it2;
+        vers(ir1, r1);
+        vers(ir2, r2);
+        cross(ih, ir1, ir2);
+        vers(ih, ih);
     }
 
     function householder {
@@ -405,4 +322,57 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
             return (-a * sqrt(-a) * ((beta - sinh(beta)) - (alfa - sinh(alfa))) / 2.0).
         }
     }
+
+    function x2tof {
+      parameter x, N.
+      local battin is 0.01.
+      local lagrange is 0.2.
+      local dist is abs(x - 1).
+      if dist < lagrange AND dist > battin { // We use Lagrange tof expression
+          return x2tof2(x, N).
+      }
+      local K is m_lambda * m_lambda.
+      local E_ is x * x - 1.0.
+      local rho is abs(E_).
+      local z is sqrt(1 + K * E_).
+      if dist < battin { // We use Battin series tof expression
+          local eta_ is z - m_lambda * x.
+          local S1 is 0.5 * (1.0 - m_lambda - x * eta_).
+          local Q_ is hypergeometricF(S1, 0.00000000001).
+          set Q_ to 4.0 / 3.0 * Q_.
+          return (eta_^3 * Q_ + 4.0 * m_lambda * eta_) / 2.0 + N * constant:PI / rho^1.5;
+      } else { // We use Lancaster tof expresion
+          local y is sqrt(rho).
+          local g_ is x * z - m_lambda * E_.
+          local d is 0.0.
+          if E_ < 0 {
+              local l is acos(g_).
+              set d to N * constant:pi + l.
+          } else {
+              local f is y * (z - m_lambda * x).
+              set d to log(f + g_);
+          }
+          return (x - m_lambda * z - d / y) / E_.
+      }
+    }
+
+    function hypergeometricF {
+      parameter z, tol.
+      local Sj is 1.0;
+      local Cj is 1.0;
+      local err is 1.0;
+      local Cj1 is 0.0;
+      local Sj1 is 0.0;
+      local j is 0;
+      until (err <= tol) {
+          set Cj1 to Cj * (3.0 + j) * (1.0 + j) / (2.5 + j) * z / (j + 1).
+          set Sj1 to Sj + Cj1.
+          set err to abs(Cj1).
+          set Sj to Sj1.
+          set Cj to Cj1.
+          set j to j + 1.
+      }
+      return Sj;
+    }
+
 }
