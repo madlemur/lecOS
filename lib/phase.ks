@@ -294,7 +294,7 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
             set it2:z to -it2:z.
         }
         local lambda3 is m_lambda * lambda2.
-        local T = sqrt(2.0 * m_mu / m_s / m_s / m_s) * m_tof.
+        local T is sqrt(2.0 * m_mu / m_s^3) * m_tof.
 
         // 2 - We now have lambda, T and we will find all x
         // 2.1 - Let us first detect the maximum number of revolutions for which there exists a solution
@@ -316,7 +316,7 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
                         set x_new to x_old - DTs[0] * DTs[1] / (DTs[1] * DTs[1] - DTs[0] * DTs[2] / 2.0).
                     }
                     set err to abs(x_old - x_new).
-                    if ((err < 1.0e-13) || (it > 12)) {
+                    if ((err < 1.0e-13) OR (it > 12)) {
                         break.
                     }
                     set T_min to x2tof(x_new, m_Nmax).
