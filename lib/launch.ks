@@ -15,7 +15,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
-  local c_del is { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-VANG(prograde,horizon()), MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
+  local c_del is { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-VANG(prograde:vector,horizon()), MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
   local LCH_I IS 0.
   local LCH_ORBIT_VEL is 0.
   local LCH_AN is 0.
@@ -26,8 +26,8 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   local times is import("lib/time.ks", false).
 
   function horizon {
-      local nrm is VCROSS(BODY:POSITION:NORMALIZED,SHIP:VELOCITY:ORBIT:NORMALIZED). // Orbit normal
-      local hrz is VCROSS(nrm,-BODY:POSITION:NORMALIZED). // Basically, ship:velocity:orbit projected
+      local nrm is VCRS(BODY:POSITION:NORMALIZED,SHIP:VELOCITY:ORBIT:NORMALIZED). // Orbit normal
+      local hrz is VCRS(nrm,-BODY:POSITION:NORMALIZED). // Basically, ship:velocity:orbit projected
       // at 90deg to both the radial (body:position) and normal vectors. Theoretically, the horizon.
       return hrz:NORMALIZED.
   }
@@ -38,7 +38,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     // Altitude at which the pitchover ends
     PARAMETER c_a IS BODY:ATM:HEIGHT * 0.9.
     // The function that gets from one to the other
-    PARAMETER c_d IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-VANG(prograde,horizon()), MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
+    PARAMETER c_d IS { IF ALTITUDE < p_alt RETURN 90. RETURN MIN(90,MAX(-VANG(prograde:vector,horizon()), MAX(90 * (1 - SQRT(ship:apoapsis/LCH_APO)),45-VERTICALSPEED))). }.
     SET p_alt to p_a.
     SET c_alt to c_a.
     SET c_del to c_d.
@@ -219,10 +219,10 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
         local ovel is velocityat(ship, TIME:SECONDS + eta:apoapsis):orbit.
 	      local vecHorizontal is vxcl(positionat(ship, TIME:SECONDS + eta:apoapsis) + ship:position - body:position, ovel).
 	      set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
-        // clearvecdraws().
-        // local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
-        // local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
-        // local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
+        clearvecdraws().
+        local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
+        local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
+        local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
 
 	    return vecHorizontal - ovel. //deltaV as a vector
     }
