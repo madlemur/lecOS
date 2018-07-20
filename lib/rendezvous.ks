@@ -4,7 +4,6 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
     local self is lex(
       "setTarget", setTarget@,
       "matchPlaneManeuver", matchPlaneManeuver@,
-      "nextTransferManeuver", nextTransferManeuver@,
       "matchVelocityManeuver", matchVelocityManeuver@
     ).
     local tgt is false.
@@ -73,74 +72,6 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
         return list(t, 0, ndv, pDv).
 
     }
-
-    function nextTransferManeuver {
-        PARAMETER maxSeparation=0.01. // In degrees of True Anomaly
-        PARAMETER maxorb=10.
-        local currOrbit is 0.
-        local currTA is SHIP:ORBIT:TRUEANOMALY.
-        local currEcc is SHIP:ORBIT:ECCENTRICITY.
-        if currEcc > 0.01 {
-            pout("Current orbit too eccentric, circularize first.").
-            return false.
-        }
-        if SHIP:ORBIT:APOAPSIS > TGT:ORBIT:PERIAPSIS {
-            pout("Current orbit must be wholly within the target orbit, lower the orbital altitude.").
-            return false.
-        }
-        local currEA is 2 * arctan( sqrt((1-currEcc)/(1+currEcc)) * tan(currTA/2)).
-        local currRAD is SQRT(SHIP:ORBIT:SEMIMAJORAXIS * SHIP:ORBIT:SEMIMINORAXIS).
-
-        local tgtTA is TGT:ORBIT:TRUEANOMALY.
-        local tgtEcc is TGT:ORBIT:ECCENTRICITY.
-        local tgtSM is TGT:ORBIT:SEMIMAJORAXIS.
-        local tgtEA is 2 * arctan( sqrt((1-tgtEcc)/(1+tgtEcc)) * tan(tgtTA/2)).
-        local alpha is { parameter k. return arccos(((2 - 2*tgtEcc^2)/(k*(2-k)))-1). }.
-        local beta is { parameter k. return arccos(tgtEcc/k - 1/k*tgtEcc + 1/tgtEcc). }.
-        local intSM is { parameter k. local a is alpha(k). return ((tgtSM^2 * k^2 * cos(a) + tgtSM^2 * k^2 - 2 * currRAD^2)/(2*tgtSM*k*cos(a) + 2*tgtSM*k - 4*currRAD)). }.
-        local theta is { parameter k. local ism is intSM(k). return arccos((ism * currSM * k - 2 * currSM * currRAD + currRAD^2)/(ism * currSM * k - ism * k * currRAD)). }.
-        local intLongPeri is { parameter k. parameter prePeri is false. if prePeri {return return beta(k) - theta(k). } else { return -(beta(k) -theta(k)). } }.
-        local intEcc is { parameter k. return 1 - currRAD/intSM(k). }.
-        local intEA is { parameter k. parameter prePeri is false. local ecc is intEcc(k). local f is 0. if prePeri { set f to 180 + theta(k). } else { set f to 180 - theta(k). } return arccos((ecc + cos(f))/(1+ecc*cos(f))). }.
-        local arrival is { parameter k. parameter prePeri is false. return (((intSM(k)^(3/2)) * ( (intEA(k, prePeri) - intEcc(k) * sin(intEA(k, prePeri)))/180)). }.
-        local departure is { parameter k. parameter prePeri is false. return (((__["mAngle"](intLongPeri(k, prePeri) - currTA)/360) + currOrbit) * SHIP:ORBIT:PERIOD). }.
-        local intV is { parameter k. return sqrt( BODY:MU * ((2/(k*tgtSM)) - 1/intSM(k))). }.
-        local intVi is { parameter k. return sqrt(BODY:MU/currRAD). }.
-        local tgtV is { parameter k. return sqrt( BODY:MU * ((2/(k*tgtSM)) - 1/tgtSM)). }.
-        local intDv is { parameter k. return intVi(k) - 360 * sqrt( (2/currRAD) - (1/currRAD)). }.
-        local tgtTAint is {
-            parameter k.
-            parameter prePeri is false.
-            local t is arrival(k, prePeri) + departure(k, prePeri) + SHIP:ORBIT:PERIOD * currOrbit.
-            local b is sqrt(body:mu/tgtSM^3) * t.
-            local c is 6 - 6 * tgtEcc.
-            local d is -6 * b.
-            local delta_root is sqrt(d^2 + (4*c^3)/27).
-            local x is ((-d -delta_root)/2)^(1/3) + ((-d + delta_root)/2)^(1/3).
-
-            local p is a/6.
-            local q1 is (tgtEcc*x)/2.
-            local s is -x * (tgtEcc + 1).
-            local v_in1 is (-(b^3)/(27*a^3))+((b*c)/(6*a^2))-(d/(2*a)).
-            local v_in2 is v_in1^2 + ((c/(3*a)) - (b^2/9*a^2))^3.
-            return (v_in1 + sqrt(v_in2))^(1/3) + (v_in1 - sqrt(v_in2))^(1/3) - b/(3*a).
-        }
-        local fitness is {
-            parameter k.
-            parameter prePeri is false.
-            local intA is theta(k).
-            local tgtA is tgtTAint(k, prePeri).
-            return ABS(intA - tgtA).
-        }
-
-        local upperB is 1 + tgtEcc.
-        local lowerB is 1 - tgtEcc.
-        local minDeparture is 60.
-
-        // compute next transfer maneuver to target orbit
-        return list(10,0,0,0).
-    }
-
     function matchVelocityManeuver {
         PARAMETER err is 1.
         if abs(ship:velocity:MAG - tgt:velocity:MAG) < err return list(0,0,0,0).

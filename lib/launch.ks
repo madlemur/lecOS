@@ -202,14 +202,14 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
 
     function circ_thrott {
         parameter deltav.
-        if not times["hasTime"]("circ") and eta:apoapsis < (staging["burnTimeForDv"](deltav:mag)/2) {
+        if not times["hasTime"]("circ") and eta:apoapsis < (staging["burnTimeForDv"](deltav:mag)/2.5) {
           pout("eta: " + eta:apoapsis).
           pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
           pout("deltav: " + deltav:mag).
           times["setTime"]("circ").
         }
         if times["hasTime"]("circ") {
-          if maxthrust < 0.05 or vang(ship:facing:vector,deltav) > 2 { return 0. } //Throttle to 0 if not pointing the right way
+          if vang(ship:facing:vector,deltav) > 2 { return 0. } //Throttle to 0 if not pointing the right way
 	        else { return max(0,min(1,deltav:mag/10)). } //lower throttle gradually as remaining deltaV gets lower
         }
         return 0.

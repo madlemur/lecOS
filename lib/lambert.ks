@@ -25,7 +25,7 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
     }
 
     function lambert_problem {
-        parameter r1, r2. // Two cartesian coordinates
+        parameter r1, r2. // Two cartesian coordinates, origin at SOI body
         parameter tof. // Time of flight
         parameter mu is BODY:mu. // mu of SOI
         parameter max_r is 5. // maximum revolutions
