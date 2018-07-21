@@ -186,15 +186,10 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
 
   function compass_of_vel {
       local pointing is ship:velocity:orbit.
-      local east is vcrs(ship:up:vector, ship:north:vector).
-
-      local trig_x is vdot(ship:north:vector, pointing).
-      local trig_y is vdot(east, pointing).
-
-      local result is arctan2(trig_y, trig_x).
-
-      return __["mAngle"](result).
-    }
+      local trig_x is vdot(heading(90, 0):vector, pointing).
+      local trig_y is vdot(heading(0, 0):vector, pointing).
+      return mod(arctan2(trig_y, trig_x) + 360, 360).
+  }
 
     function circ_pitch {
         return -(eta_ap_with_neg()/3).
