@@ -219,10 +219,10 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
         local ovel is velocityat(ship, TIME:SECONDS + eta:apoapsis):orbit.
 	      local vecHorizontal is vxcl(positionat(ship, TIME:SECONDS + eta:apoapsis) + ship:position - body:position, ovel).
 	      set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
-        clearvecdraws().
-        local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
-        local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
-        local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
+        // clearvecdraws().
+        // local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
+        // local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
+        // local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
 
 	    return vecHorizontal - ovel. //deltaV as a vector
     }
@@ -245,9 +245,9 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
             clearvecdraws().
             return true.
         }
-        if (dv:mag < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 3) {
+        if (dv:mag < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 5) {
             times["setTime"]("circ").
-            set timeout to 3.
+            set timeout to 5.
         }
         return false.
     }
