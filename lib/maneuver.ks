@@ -2,30 +2,34 @@
 PRINT("LEC MANEUVER v%VERSION_NUMBER%").
 {
   local self is lex (
-
+      "setManeuver", setManeuver@,
+      "orientCraft", orientCraft@,
+      "isOriented", isOriented@,
+      "maneuverComplete", maneuverComplete@
   ).
   local t is 0.
   local targetV is 0.
   local targetP is 0.
   local steervec is 0.
   local burnMag is 0.
+  local staging is import("lib/staging.ks").
 
   local node_bestFacing is 5.   // ~5  degrees error (10 degree cone)
   local node_okFacing   is 20.  // ~20 degrees error (40 degree cone)
 
   function setManeuver {
-    parameter n.
+    parameter n is NEXTNODE.
     local dv
     if n:isType("ManeuverNode") {
       set dv to n:deltav.
       set t to n:eta + TIME:SECONDS.
     } else if n:isType("List") {
       if n:length = 2 {
-        set dv to n[0].
-        set t to n[1].
+        set dv to n[1].
+        set t to n[0].
       } if n:length = 4 {
-        set dv to V(n[0],n[1]n[2]).
-        set t to n[3].
+        set dv to V(n[1],n[2]n[3]).
+        set t to n[0].
       }
     } else if n:isType("Lexicon") {
       if n:haskey("deltav") {
@@ -54,14 +58,14 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
 
   function isOriented {
     if  utilIsShipFacing(steerVec,node_bestFacing,0.5) or
-        ((t - TIME:SECONDS <= nodeDob / 2) and utilIsShipFacing(steerVec,node_okFacing,5)) or
+        ((t - TIME:SECONDS <= staging["burnTimeForDv"](burnMag) / 2) and utilIsShipFacing(steerVec,node_okFacing,5)) or
         ship:angularvel:mag < 0.0001 { return true. }
     return false.
   }
 
   function maneuverComplete {
     set steervec to (targetV - velocityAt(ship, t)) - ( targetP - positionAt(ship, t)).
-    local nodeAccel is ship:availablethrust / ship:mass.
+    local nodeAccel is staging["thrustToWeight"]().
 
     if nodeAccel > 0 {
       if utilIsShipFacing(steervec,node_okFacing,2) {

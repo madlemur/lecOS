@@ -202,13 +202,14 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
 
     function circ_thrott {
         parameter deltav.
-        if not times["hasTime"]("circ") and eta:apoapsis < (staging["burnTimeForDv"](deltav:mag)/2.5) {
-          pout("eta: " + eta:apoapsis).
-          pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
-          pout("deltav: " + deltav:mag).
-          times["setTime"]("circ").
+        if not times["hasTime"]("circ") {
+            pout("eta: " + eta:apoapsis).
+            pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
+            pout("deltav: " + deltav:mag).
+            times["setTime"]("circ", TIME:SECONDS + eta:apoapsis - staging["burnTimeForDv"](deltav:mag)/2).
+            times["setTime"]("circ_to", TIME:SECONDS + eta:apoapsis).
         }
-        if times["hasTime"]("circ") {
+        if times["diffTime"]("circ") > 0 {
           if vang(ship:facing:vector,deltav) > 2 { return 0. } //Throttle to 0 if not pointing the right way
 	        else { return max(0,min(1,deltav:mag/10)). } //lower throttle gradually as remaining deltaV gets lower
         }
@@ -237,7 +238,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
             clearvecdraws().
             return true.
         }
-        if (times["hasTime"]("circ") AND times["diffTime"]("circ") > timeout) {
+        if (times["hasTime"]("circ_to") AND times["diffTime"]("circ_to") > timeout) {
             pout("Circularize timed out.").
             unlock steering.
             unlock throttle.
@@ -245,8 +246,8 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
             clearvecdraws().
             return true.
         }
-        if (dv:mag < 0.05 AND times["hasTime"]("circ") AND times["diffTime"]("circ") > 5) {
-            times["setTime"]("circ").
+        if (dv:mag < 0.05 AND times["hasTime"]("circ_to") AND times["diffTime"]("circ_to") > 5) {
+            times["setTime"]("circ_to").
             set timeout to 5.
         }
         return false.

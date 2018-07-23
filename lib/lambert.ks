@@ -130,12 +130,6 @@ pout("LEC LAMBERT v%VERSION_NUMBER%").
         // for which there exists a solution. We crop it to m_multi_revs
         set m_Nmax to min(m_multi_revs, m_Nmax).
 
-        // 2.2 We now allocate the memory for the output variables
-        // m_v1.resize(m_Nmax * 2 + 1);
-        // m_v2.resize(m_Nmax * 2 + 1);
-        // m_iters.resize(m_Nmax * 2 + 1);
-        // m_x.resize(m_Nmax * 2 + 1);
-
         // 3 - We may now find all solutions in x,y
         // 3.1 0 rev solution
         // 3.1.1 initial guess
