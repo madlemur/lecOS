@@ -135,5 +135,30 @@ PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
       return (Tmax+Tmin) / 2.
     }
 
+    // Given that ship1 "passes" ship2 during time span, find the APPROXIMATE
+    // distance of closest approach, but not precise! Use this iteratively to find
+    // the true closest approach.
+    function utilCloseApproach {
+      parameter ship1.
+      parameter ship2.
+      parameter Tmin.
+      parameter Tmax.
+
+      local Rbest is (ship1:position - ship2:position):mag.
+      local Tbest is 0.
+      local dt is (Tmax - Tmin) / 32.
+
+      local T is Tmin.
+      until T >= Tmax {
+        local X is (positionat(ship1, T)) - (positionat(ship2, T)).
+        if X:mag < Rbest {
+          set Rbest to X:mag.
+        }
+        set T to T + dt.
+      }
+
+      return Rbest.
+    }
+
     export(self).
 }

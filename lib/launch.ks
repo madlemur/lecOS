@@ -6,12 +6,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     "calcLaunchDetails", calcLaunchDetails@,
     "getPitch", getPitch@,
     "getBearing", getBearing@,
-    "getThrottle", getThrottle@,
-    "circularized", circularized@,
-    "circ_thrott", circ_thrott@,
-    "circ_heading", compass_of_vel@,
-    "circ_pitch", circ_pitch@,
-    "circ_deltav", circ_deltav@
+    "getThrottle", getThrottle@
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
@@ -21,7 +16,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   local LCH_AN is 0.
   local LCH_APO is 0.
   local HALF_LAUNCH is 145.
-  local timeout is 9000.
+  local timeout is 90.
   local staging is import("lib/staging.ks", false).
   local times is import("lib/time.ks", false).
 
@@ -173,80 +168,6 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     PARAMETER h.
     IF h > 0 { SET HALF_LAUNCH TO h. }
   }
-
-  // Return eta:apoapsis but with times behind you
-  // rendered as negative numbers in the past:
-  function eta_ap_with_neg {
-    local ret_val is eta:apoapsis.
-    if ret_val > ship:obt:period / 2 {
-      set ret_val to ret_val - ship:obt:period.
-    }
-    return ret_val.
-  }
-
-  function compass_of_vel {
-      local pointing is ship:velocity:orbit.
-      local trig_x is vdot(heading(90, 0):vector, pointing).
-      local trig_y is vdot(heading(0, 0):vector, pointing).
-      return mod(arctan2(trig_y, trig_x) + 360, 360).
-  }
-
-    function circ_pitch {
-        return -(eta_ap_with_neg()/3).
-    }
-
-    function circ_thrott {
-        parameter deltav.
-        if not times["hasTime"]("circ") {
-            pout("eta: " + eta:apoapsis).
-            pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
-            pout("deltav: " + deltav:mag).
-            times["setTime"]("circ", TIME:SECONDS + eta:apoapsis - staging["burnTimeForDv"](deltav:mag)/2).
-            times["setTime"]("circ_to", TIME:SECONDS + eta:apoapsis).
-        }
-        if times["diffTime"]("circ") > 0 {
-          if vang(ship:facing:vector,deltav) > 2 { return 0. } //Throttle to 0 if not pointing the right way
-	        else { return max(0,min(1,deltav:mag/10)). } //lower throttle gradually as remaining deltaV gets lower
-        }
-        return 0.
-    }
-
-    function circ_deltav {
-        local ovel is velocityat(ship, TIME:SECONDS + eta:apoapsis):orbit.
-	      local vecHorizontal is vxcl(positionat(ship, TIME:SECONDS + eta:apoapsis) + ship:position - body:position, ovel).
-	      set vecHorizontal:mag to sqrt(body:MU/(body:Radius + altitude)).
-        // clearvecdraws().
-        // local ovelvec is VECDRAW(V(0,0,0), ovel, RGB(1,1,0), "Orbital Vel", 1.0, TRUE, 0.2).
-        // local hvelvec is VECDRAW(V(0,0,0), vecHorizontal, RGB(0,1,0), "Horizontal Vel", 1.0, TRUE, 0.2).
-        // local dvelvec is VECDRAW(V(0,0,0), vecHorizontal - ovel, RGB(0,0,1), "Delta V", 1.0, TRUE, 0.2).
-
-	    return vecHorizontal - ovel. //deltaV as a vector
-    }
-
-    function circularized {
-        local dv is circ_deltav().
-        if dv:mag < 0.02 {
-            pout("Circularization complete. ecc=" + ship:obt:ECCENTRICITY).
-            unlock steering.
-            unlock throttle.
-            set timeout to 9000.
-            clearvecdraws().
-            return true.
-        }
-        if (times["hasTime"]("circ_to") AND times["diffTime"]("circ_to") > timeout) {
-            pout("Circularize timed out.").
-            unlock steering.
-            unlock throttle.
-            set timeout to 9000.
-            clearvecdraws().
-            return true.
-        }
-        if (dv:mag < 0.05 AND times["hasTime"]("circ_to") AND times["diffTime"]("circ_to") > 5) {
-            times["setTime"]("circ_to").
-            set timeout to 5.
-        }
-        return false.
-    }
 
   export(self).
 }
