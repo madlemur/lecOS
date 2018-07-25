@@ -45,16 +45,19 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     // orbit inclination
     PARAMETER l_inc IS 0.
     // longitude of ascending node
-    PARAMETER l_lan IS __["mAngle"](SHIP:OBT:LAN).
+    PARAMETER l_lan IS false.
     SET LCH_AN to l_lan.
     SET LCH_I to l_inc.
     SET LCH_ORBIT_VEL to SQRT(BODY:MU/(BODY:RADIUS + l_alt)).
     SET LCH_APO to l_alt.
 
     LOCAL az IS azimuth(l_inc).
-    IF az < 0 { RETURN noPassLaunchDetails(l_alt,l_inc,l_lan). }
-    ELSE { RETURN launchDetails(l_alt,l_inc,l_lan,az). }
+    local l_details is 0.
+    IF NOT l_lan { set l_details to LIST(az, TIME:SECONDS + 10). }
+    ELSE IF az < 0 { set l_details to noPassLaunchDetails(l_alt,l_inc,l_lan). }
+    ELSE { set l_details to launchDetails(l_alt,l_inc,l_lan,az). }
 
+    RETURN l_details.
   }
 
   FUNCTION azimuth {

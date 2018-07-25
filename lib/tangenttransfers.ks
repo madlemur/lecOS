@@ -6,7 +6,9 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
     ).
     local tgt is false.
 
-    function findTransferManeuvers {
+
+
+    function buildCandidateTable {
         PARAMETER maxSeparation=0.01. // In degrees of True Anomaly
         PARAMETER maxorb=10.
         local currOrbit is 0.
@@ -61,6 +63,19 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
             local v_in2 is v_in1^2 + ((c/(3*a)) - (b^2/9*a^2))^3.
             return (v_in1 + sqrt(v_in2))^(1/3) + (v_in1 - sqrt(v_in2))^(1/3) - b/(3*a).
         }
+
+        local solutions is list().
+        FROM { local k is 0.0. } UNTIL k = 360.0 STEP { SET k TO k + 1.0. } {
+            solutions:insert(k, list(k, departure(k, false), arrival(k, false), intDv(k), mod(abs(theta(k) - tgtTAint(k, false)), 360))).
+            if k > 0 { solutions:insert(-k, list(k, departure(k, true), arrival(k, true), intDv(k), mod(abs(360 - theta(k) - tgtTAint(k, true)), 360))). }
+        }
+
+
+
+
+
+
+
         local fitness is {
             parameter k.
             parameter prePeri is false.
