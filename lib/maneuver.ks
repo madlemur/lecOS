@@ -2,14 +2,13 @@
 PRINT("LEC MANEUVER v%VERSION_NUMBER%").
 {
   local self is lex (
-      "setManeuver", setManeuver@,
+      "getManeuver", getManeuver@,
       "orientCraft", orientCraft@,
       "isOriented", isOriented@,
       "maneuverComplete", maneuverComplete@,
       "circularized", circularized@,
       "circ_thrott", circ_thrott@,
       "circ_heading", compass_of_vel@,
-      "circ_pitch", circ_pitch@,
       "circ_deltav", circ_deltav@
   ).
   local t is 0.
@@ -18,11 +17,12 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
   local steervec is 0.
   local burnMag is 0.
   local staging is import("lib/staging.ks").
+  local timeout is 10.
 
   local node_bestFacing is 5.   // ~5  degrees error (10 degree cone)
   local node_okFacing   is 20.  // ~20 degrees error (40 degree cone)
 
-  function setManeuver {
+  function getManeuver {
     parameter n is NEXTNODE.
     local dv
     if n:isType("ManeuverNode") {
@@ -33,43 +33,53 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
         set dv to n[1].
         set t to n[0].
       } if n:length = 4 {
-        set dv to V(n[1],n[2]n[3]).
+        set dv to V(n[1],n[2],n[3]).
         set t to n[0].
       }
     } else if n:isType("Lexicon") {
       if n:haskey("deltav") {
         set dv to n["deltav"].
       } else {
-        set dv to V(n["prograde"], n["radialout"], n["normal"]).
+        set dv to V(n["radialout"], n["normal"], n["prograde"]).
       }
       set t to n["nodetime"].
     } else {
       return false.
     }
-    set burnMag to dv:mag.
-    set targetV to velocityAt(ship, t) + dv.
-    set targetP to positionAt(ship, t).
-    set steervec to lookdirup(dv, ship:up:vector):vector.
+    local myMvn is lex (
+        "burnTime", t,
+        "burnVec", dv,
+        "targetVel", velocityAt(ship, t) + dv,
+        "targetPos", positionAt(ship, t)
+    ).
     return true.
   }
 
   function orientCraft {
-    if steerVec:isType("Vector") {
-      lock steering to steerVec.
+      parameter mnv.
+      set steervec to mnv["burnVec"].
+      lock steering to steervec.
       return true.
     }
-    return false.
-  }
 
   function isOriented {
-    if  utilIsShipFacing(steerVec,node_bestFacing,0.5) or
-        ((t - TIME:SECONDS <= staging["burnTimeForDv"](burnMag) / 2) and utilIsShipFacing(steerVec,node_okFacing,5)) or
-        ship:angularvel:mag < 0.0001 { return true. }
+    parameter mnv.
+    if utilIsShipFacing(mnv["burnVec"],node_bestFacing,0.5) or
+        ((mnv["burnTime"] - TIME:SECONDS <= staging["burnTimeForDv"](mnv["burnVec"]:mag) / 2) and
+          utilIsShipFacing(mnv["burnVec"],node_okFacing,5)) or
+        ship:angularvel:mag < 0.001 {
+            return true.
+        }
     return false.
   }
 
   function maneuverComplete {
-    set steervec to (targetV - velocityAt(ship, t)) - ( targetP - positionAt(ship, t)).
+    parameter mnv.
+    if NOT mnv:haskey("lastMag") {
+        set mnv["lastMag"] to mnv["burnVec"]:mag + 1.
+    }
+    local t is mnv["burnTime"].
+    set steervec to (mnv["targetVel"] - velocityAt(ship, t)) - ( mnv["targetPos"] - positionAt(ship, t)).
     local nodeAccel is staging["thrustToWeight"]().
 
     if nodeAccel > 0 {
@@ -85,11 +95,13 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
       //   1) overshot (node delta vee is pointing opposite from initial)
       //   2) burn DV increases (off target due to wobbles)
       //   3) burn DV gets too small for main engines to cope with
-      if (vdot(targetV, steervec) < 0) or
-                      (steervec:mag > burnMag + 0.05) or
-                      (steervec:mag <= 0.2) { return true. }
+      if (vdot(mnv["targetVel"], steervec) < 0) or
+          (steervec:mag > mnv["lastMag"] + 0.05)
+          (steervec:mag <= 0.2) {
+              return true.
+          }
+      set mnv["lastMag"] to steervec:mag.
     }
-    set burnMag to steervec:mag.
     return false.
   }
 
@@ -109,10 +121,6 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
       local trig_y is vdot(heading(0, 0):vector, pointing).
       return mod(arctan2(trig_y, trig_x) + 360, 360).
   }
-
-    function circ_pitch {
-        return -(eta_ap_with_neg()/3).
-    }
 
     function circ_thrott {
         parameter deltav.
@@ -144,11 +152,10 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
 
     function circularized {
         local dv is circ_deltav().
-        if dv:mag < 0.005 {
+        if dv:mag < 0.0005 {
             pout("Circularization complete. ecc=" + ship:obt:ECCENTRICITY).
             unlock steering.
             unlock throttle.
-            set timeout to 90.
             clearvecdraws().
             return true.
         }
@@ -156,13 +163,8 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
             pout("Circularize timed out.").
             unlock steering.
             unlock throttle.
-            set timeout to 90.
             clearvecdraws().
             return true.
-        }
-        if (dv:mag < 0.05 AND times["diffTime"]("circ_to") > 5) {
-            times["setTime"]("circ_to").
-            set timeout to 5.
         }
         return false.
     }

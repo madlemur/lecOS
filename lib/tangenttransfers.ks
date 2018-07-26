@@ -65,12 +65,31 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
         }
 
         local solutions is list().
-        FROM { local k is 0.0. } UNTIL k = 360.0 STEP { SET k TO k + 1.0. } {
-            solutions:insert(k, list(k, departure(k, false), arrival(k, false), intDv(k), mod(abs(theta(k) - tgtTAint(k, false)), 360))).
-            if k > 0 { solutions:insert(-k, list(k, departure(k, true), arrival(k, true), intDv(k), mod(abs(360 - theta(k) - tgtTAint(k, true)), 360))). }
+        local ndx is 0.
+        FROM { local k is 1.0 - tgtEcc. } UNTIL k = 1.0 + tgtEcc STEP { SET k TO k + (tgtEcc/90). } {
+            solutions:insert(ndx, list(k, departure(k, false), arrival(k, false), intDv(k), mod(abs(theta(k) - tgtTAint(k, false)), 360))).
+            solutions:insert(ndx + 180, list(k, departure(k, true), arrival(k, true), intDv(k), mod(abs(360 - theta(k) - tgtTAint(k, true)), 360))).
+            set ndx to ndx + 1.
         }
+        pout("Computed tangent intercepts for orbit " + currOrbit).
+        set currOrbit to currOrbit + 1.
+        set ndx to ndx + 180.
+        FROM { local k is 1.0 - tgtEcc. } UNTIL k = 1.0 + tgtEcc STEP { SET k TO k + (tgtEcc/90). } {
+            solutions:insert(ndx, list(k, departure(k, false), arrival(k, false), intDv(k), mod(abs(theta(k) - tgtTAint(k, false)), 360))).
+            solutions:insert(ndx + 180, list(k, departure(k, true), arrival(k, true), intDv(k), mod(abs(360 - theta(k) - tgtTAint(k, true)), 360))).
+            set ndx to ndx + 1.
+        }
+        pout("Computed tangent intercepts for orbit " + currOrbit).
+        set currOrbit to currOrbit + 1.
+        set ndx to ndx + 180.
+        FROM { local k is 1.0 - tgtEcc. } UNTIL k = 1.0 + tgtEcc STEP { SET k TO k + (tgtEcc/90). } {
+            solutions:insert(ndx, list(k, departure(k, false), arrival(k, false), intDv(k), mod(abs(theta(k) - tgtTAint(k, false)), 360))).
+            solutions:insert(ndx + 180, list(k, departure(k, true), arrival(k, true), intDv(k), mod(abs(360 - theta(k) - tgtTAint(k, true)), 360))).
+            set ndx to ndx + 1.
+        }
+        pout("Computed tangent intercepts for orbit " + currOrbit).
 
-
+        
 
 
 
