@@ -6,7 +6,45 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
     ).
     local tgt is false.
 
+    function quicksort {
+        parameter unsorted, lo, hi, compare.
+        if lo < hi {
+            mo3(unsorted, lo, hi, compare).
+            local p is partition(unsorted, lo, hi, compare).
+            quicksort(unsorted, lo, p-1, compare).
+            quicksort(usorted, p+1, hi, compare).
+        }
+    }
 
+    // Find a reasonable pivot value
+    function mo3 {
+        parameter A, lo, hi, compare.
+        local tmp is 0.
+        local mid is floor((lo + hi) / 2).
+        if compare(A[mid], A[lo]) < 0 {
+            set tmp to A[lo].
+            set A[lo] to A[mid].
+            set A[mid] to tmp.
+        }
+        if compare(A[hi], A[lo]) < 0 {
+            set tmp to A[lo].
+            set A[lo] to A[hi].
+            set A[hi] to tmp.
+        }
+        if compare(A[mid], A[hi]) < 0 {
+            set tmp to A[mid].
+            set A[mid] to A[hi].
+            set A[hi] to tmp.
+        }
+    }
+
+    // Swap values around to get all the pivot values into the center partition
+    function partition {
+        parameter unsorted, p, lo, hi, compare.
+        local p_lo is p.
+        local p_hi is p.
+        return list(p_lo, p_hi).
+    }
 
     function buildCandidateTable {
         PARAMETER maxSeparation=0.01. // In degrees of True Anomaly
@@ -14,7 +52,7 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
         local currOrbit is 0.
         local currTA is SHIP:ORBIT:TRUEANOMALY.
         local currEcc is SHIP:ORBIT:ECCENTRICITY.
-        if currEcc > 0.01 {
+        if currEcc > 0.001 {
             pout("Current orbit too eccentric, circularize first.").
             return false.
         }
@@ -27,9 +65,9 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
 
         local tgtTA is TGT:ORBIT:TRUEANOMALY.
         local tgtEcc is TGT:ORBIT:ECCENTRICITY.
-        if tgtEcc < 0.1 {
-            pout("Target orbit too circular, use a Hohmann transfer.").
-            return false.
+        if tgtEcc < 0.00001 {
+            pout("Target orbit too circular, faking it.").
+            set tgtEcc to 0.00001.
         }
         local tgtSM is TGT:ORBIT:SEMIMAJORAXIS.
         local tgtEA is 2 * arctan( sqrt((1-tgtEcc)/(1+tgtEcc)) * tan(tgtTA/2)).
@@ -89,8 +127,11 @@ PRINT("LEC TANGENT TRANSFERS v%VERSION_NUMBER%").
         }
         pout("Computed tangent intercepts for orbit " + currOrbit).
 
-        
-
+        from { set ndx to 0. } UNTIL ndx > 360 * 3 STEP { SET ndx to ndx + 1. } {
+            set foo to solutions[ndx].
+            log JOIN(foo, ",") TO "0:/"+SAFENAME+"_TT.log".
+        }
+    }
 
 
 
