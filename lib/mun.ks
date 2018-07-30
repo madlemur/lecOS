@@ -1,16 +1,9 @@
 {
     local maneuver is import("lib/maneuver.ks", false).
     local self is lex(
-        "mun", main@
+        "setTransfer", setTransfer@
     ).
     // Functional Launch Script
-
-    function main {
-      doTransfer().
-      doHoverslam().
-      pout("It ran!").
-    }
-
 
     function protectFromPast {
       parameter originalFunction.
@@ -25,30 +18,16 @@
       return replacementFunction@.
     }
 
-    function doTransfer {
+    function setTransfer {
+      local peri is 80000.
       local transfer is list(time:seconds + 30, 0, 0, 0).
-      set transfer to improveConverge(transfer, protectFromPast(munTransferScore@)).
-      executeManeuver(transfer).
-      wait until body = Mun.
-    }
-
-    function doHoverslam {
-      lock steering to srfretrograde.
-      lock pct to stoppingDistance() / (alt:radar).
-      wait until pct > 1.
-      lock throttle to pct.
-      when alt:radar < 500 then { gear on. }
-      wait until shit:verticalspeed > 0.
-      lock throttle to 0.
-      unlock steering.
-    }
-
-    function stoppingDistance {
-      local maxDeceleration is ship:availablethrust/ship:mass - body:mu.
-      return ship:verticalspeed ^ 2 / (2*maxDeceleration).
+      set transfer to improveConverge(transfer, protectFromPast(munTransferScore@:bind(peri))).
+      local transNode is Node(transfer[0], transfer[1], transfer[2], transfer[3]).
+      add transNode.
     }
 
     function munTransferScore {
+      parameter peri.
       parameter data.
       local mnv is node(data[0], data[1], data[2], data[3]).
       add mnv.
@@ -59,7 +38,7 @@
         set result to distanceToMunAtApoapsis(mnv).
       }
       remove mnv.
-      return result.
+      return abs(result - peri).
     }
 
     function distanceToMunAtApoapsis {
@@ -135,10 +114,11 @@
 
     function executeManeuver {
       parameter mList.
-      local mnv is maneuver["getManeuver"](mList).
-      maneuver["orientCraft"](mnv).
-      wait until maneuver["isOriented"](mnv).
-      until maneuver["maneuverComplete"](mnv) { wait 0. doAutoStage(). }
+      local mnvNode is Node(mList).
+      add mnvNode.
+      maneuver["orientCraft"](mnvNode).
+      wait until maneuver["isOriented"](mnvNode).
+      until maneuver["nodeComplete"](mnvNode) { wait 0. doAutoStage(). }
       lock throttle to 0.
       unlock steering.
     }
