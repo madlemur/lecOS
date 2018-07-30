@@ -8,7 +8,7 @@
     local nav_landing is import("lib/nav_landing.ks", false).
     local mission_list is list (
         "ActivateLaunch", { parameter mission. if AG1 { mission["next"](). } },
-        "PreLaunch", { parameter mission. local l_detail is launch["calcLaunchDetails"](100000). for d in l_detail { pout(d). }. set l_time to TIME:SECONDS + 10. set st to heading(l_detail[0], 90). set th to 1. __["warpUntil"](l_time - 15). lock steering to st. lock throttle to th. mission["next"](). },
+        "PreLaunch", { parameter mission. local l_detail is launch["calcLaunchDetails"](100000). set l_time to TIME:SECONDS + 10. set st to heading(l_detail[0], 90). set th to 1. __["warpUntil"](l_time - 15). lock steering to st. lock throttle to th. mission["next"](). },
         "Launch", { parameter mission. if ship:status = "PRELAUNCH" and TIME:SECONDS > l_time { mission["startEvent"]("staging"). mission["next"](). } },
         "InitialAscent", { parameter mission. if SHIP:AIRSPEED > 100 { mission["next"](). } },
         "Turn", { parameter mission. ascendControls(). mission["next"](). },

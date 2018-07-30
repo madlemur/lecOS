@@ -61,7 +61,6 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
         lock throttle to 0.
         unlock all.
         remove mnvNode.
-        pout("Node Executed").
         return true.
     }
     if DeltaV < 0.5 {
@@ -97,9 +96,6 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
             set eta_time to eta:periapsis.
         }
         if not times["hasTime"]("circ") {
-            pout("eta: " + eta_time).
-            pout("burn: " + staging["burnTimeForDv"](deltav:mag)).
-            pout("deltav: " + deltav:mag).
             times["setTime"]("circ", TIME:SECONDS + eta_time - staging["burnTimeForDv"](deltav:mag)/2).
             times["setTime"]("circ_to", TIME:SECONDS + eta_time + staging["burnTimeForDv"](deltav:mag)/2).
         }
