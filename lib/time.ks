@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC TIME v%VERSION_NUMBER%").
+pout("LEC TIME v%VERSION_NUMBER%").
 {
     local self is lexicon(
         "setTime", setTime@,

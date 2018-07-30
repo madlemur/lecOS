@@ -161,7 +161,7 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     return c_del().
   }
   function getThrottle {
-    if maxthrust > 0 and ship:velocity:orbit:mag < LCH_ORBIT_VEL return 1.05 - min(1, max(0, (ship:velocity:orbit:mag/LCH_ORBIT_VEL)^4)).
+    if maxthrust > 0 and ship:velocity:orbit:mag < LCH_ORBIT_VEL return 1 - min(1, max(0, (ship:velocity:orbit:mag/LCH_ORBIT_VEL)^4)).
     return 0.
   }
   LOCAL HALF_LAUNCH IS 145.

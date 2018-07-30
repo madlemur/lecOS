@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC DISKIO v%VERSION_NUMBER%").
+pout("LEC DISKIO v%VERSION_NUMBER%").
 {
 
     local self is lexicon(

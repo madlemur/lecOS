@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC MANEUVER v%VERSION_NUMBER%").
+pout("LEC MANEUVER v%VERSION_NUMBER%").
 {
   local self is lex (
       "getManeuver", getManeuver@,
@@ -16,7 +16,9 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
   local targetP is 0.
   local burnMag is 0.
   local staging is import("lib/staging.ks").
+  local times is import("lib/time.ks").
   local timeout is 10.
+  local th is 0.
 
   // Steering and throttle values
   local steervec is 0.
@@ -27,7 +29,7 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
 
   function getManeuver {
     parameter n is NEXTNODE.
-    local dv
+    local dv is 0.
     if n:isType("ManeuverNode") {
       set dv to n:deltav.
       set t to n:eta + TIME:SECONDS.
@@ -52,16 +54,17 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
     local myMvn is lex (
         "burnTime", t,
         "burnVec", dv,
-        "targetVel", velocityAt(ship, t) + dv,
+        "targetVel", velocityAt(ship, t):orbit + dv,
         "targetPos", positionAt(ship, t)
     ).
-    return true.
+    return myMvn.
   }
 
   function orientCraft {
       parameter mnvNode.
       set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
       lock steering to steervec.
+      lock throttle to th.
       return true.
     }
 
@@ -109,7 +112,7 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
         set mnv["lastMag"] to mnv["burnVec"]:mag + 1.
     }
     local t is mnv["burnTime"].
-    set steervec to (mnv["targetVel"] - velocityAt(ship, t)) - ( mnv["targetPos"] - positionAt(ship, t)).
+    set steervec to (mnv["targetVel"] - velocityAt(ship, t):orbit) - ( mnv["targetPos"] - positionAt(ship, t)).
     local nodeAccel is staging["thrustToWeight"]().
 
     if nodeAccel > 0 {
@@ -208,4 +211,5 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
     return vdot(FaceVec, ship:facing:forevector) >= cos(maxDeviationDegrees) and
            ship:angularvel:mag < maxAngularVelocity.
   }
+  export(self).
 }

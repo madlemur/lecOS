@@ -82,7 +82,7 @@ WAIT 5.
 
   GLOBAL loadScript is
   {
-    PARAMETER fn, loud IS TRUE.
+    PARAMETER fn, loud IS false.
     LOCAL lfp IS findPath(fn).
     IF lfp <> "" { RETURN lfp. }
 

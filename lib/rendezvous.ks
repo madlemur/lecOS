@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC RENDEZVOUS v%VERSION_NUMBER%").
+pout("LEC RENDEZVOUS v%VERSION_NUMBER%").
 {
     local self is lex(
       "setTarget", setTarget@,
