@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC TEXT v%VERSION_NUMBER%").
+pout("LEC TEXT v%VERSION_NUMBER%").
 {
     local self is lexicon(
         "formatTS", formatTS@,

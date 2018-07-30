@@ -35,12 +35,16 @@ pout("LEC EVENTS v%VERSION_NUMBER%").
             pout("Deploying/Jettisoning fairings.").
             FOR module IN SHIP:MODULESNAMED("ModuleProceduralFairing") { // Stock and KW Fairings
                 // and deploys them
-                module:DOEVENT("deploy").
+                if module:HASEVENT("deploy") {
+                  module:DOEVENT("deploy").
+                }
             }.
             // Iterates over a list of all parts using the fairing module from the Procedural Fairings Mod
             FOR module IN SHIP:MODULESNAMED("ProceduralFairingDecoupler") { // Procedural Fairings
                 // and jettisons them (PF uses the word jettison in the right click menu instead of deploy)
-                module:DOEVENT("jettison").
+                if module:HASEVENT("jettison") {
+                  module:DOEVENT("jettison").
+                }
             }.
             mission["startEvent"]("panels").
             mission["delEvent"](name).

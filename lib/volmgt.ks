@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-PRINT("LEC VOLMGT v%VERSION_NUMBER%").
+pout("LEC VOLMGT v%VERSION_NUMBER%").
 {
     LOCAL self is lexicon(
         "init", init@

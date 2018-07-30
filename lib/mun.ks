@@ -1,27 +1,16 @@
 {
+    local maneuver is import("lib/maneuver.ks", false).
     local self is lex(
-        "main", main@
+        "mun", main@
     ).
     // Functional Launch Script
 
     function main {
-      doLaunch().
-      doAscent().
-      until apoapsis > 100000 {
-        doAutoStage().
-      }
-      doShutdown().
-      doCircularization().
       doTransfer().
-      print "It ran!".
-      wait until false.
+      doHoverslam().
+      pout("It ran!").
     }
 
-    function doCircularization {
-      local circ is list(0).
-      set circ to improveConverge(circ, eccentricityScore@).
-      executeManeuver(list(time:seconds + eta:apoapsis, 0, 0, circ[0])).
-    }
 
     function protectFromPast {
       parameter originalFunction.
@@ -39,22 +28,37 @@
     function doTransfer {
       local transfer is list(time:seconds + 30, 0, 0, 0).
       set transfer to improveConverge(transfer, protectFromPast(munTransferScore@)).
-      local mnv is node(transfer[0], transfer[1], transfer[2], transfer[3]).
-      addManeuverToFlightPlan(mnv).
-      // executeManeuver(transfer).
+      executeManeuver(transfer).
+      wait until body = Mun.
+    }
+
+    function doHoverslam {
+      lock steering to srfretrograde.
+      lock pct to stoppingDistance() / (alt:radar).
+      wait until pct > 1.
+      lock throttle to pct.
+      when alt:radar < 500 then { gear on. }
+      wait until shit:verticalspeed > 0.
+      lock throttle to 0.
+      unlock steering.
+    }
+
+    function stoppingDistance {
+      local maxDeceleration is ship:availablethrust/ship:mass - body:mu.
+      return ship:verticalspeed ^ 2 / (2*maxDeceleration).
     }
 
     function munTransferScore {
       parameter data.
       local mnv is node(data[0], data[1], data[2], data[3]).
-      addManeuverToFlightPlan(mnv).
+      add mnv.
       local result is 0.
       if mnv:orbit:hasNextPatch {
         set result to mnv:orbit:nextPatch:periapsis.
       } else {
         set result to distanceToMunAtApoapsis(mnv).
       }
-      removeManeuverFromFlightPlan(mnv).
+      remove mnv.
       return result.
     }
 
@@ -88,15 +92,6 @@
           set right to rightThird.
         }
       }
-    }
-
-    function eccentricityScore {
-      parameter data.
-      local mnv is node(time:seconds + eta:apoapsis, 0, 0, data[0]).
-      addManeuverToFlightPlan(mnv).
-      local result is mnv:orbit:eccentricity.
-      removeManeuverFromFlightPlan(mnv).
-      return result.
     }
 
     function improveConverge {
@@ -140,98 +135,12 @@
 
     function executeManeuver {
       parameter mList.
-      local mnv is node(mList[0], mList[1], mList[2], mList[3]).
-      addManeuverToFlightPlan(mnv).
-      local startTime is calculateStartTime(mnv).
-      wait until time:seconds > startTime - 10.
-      lockSteeringAtManeuverTarget(mnv).
-      wait until time:seconds > startTime.
-      lock throttle to 1.
-      until isManeuverComplete(mnv) {
-        doAutoStage().
-      }
+      local mnv is maneuver["getManeuver"](mList).
+      maneuver["orientCraft"](mnv).
+      wait until maneuver["isOriented"](mnv).
+      until maneuver["maneuverComplete"](mnv) { wait 0. doAutoStage(). }
       lock throttle to 0.
       unlock steering.
-      removeManeuverFromFlightPlan(mnv).
-    }
-
-    function addManeuverToFlightPlan {
-      parameter mnv.
-      add mnv.
-    }
-
-    function calculateStartTime {
-      parameter mnv.
-      return time:seconds + mnv:eta - maneuverBurnTime(mnv) / 2.
-    }
-
-    function maneuverBurnTime {
-      parameter mnv.
-      local dV is mnv:deltaV:mag.
-      local g0 is 9.80665.
-      local isp is 0.
-
-      list engines in myEngines.
-      for en in myEngines {
-        if en:ignition and not en:flameout {
-          set isp to isp + (en:isp * (en:availableThrust / ship:availableThrust)).
-        }
-      }
-
-      local mf is ship:mass / constant():e^(dV / (isp * g0)).
-      local fuelFlow is ship:availableThrust / (isp * g0).
-      local t is (ship:mass - mf) / fuelFlow.
-
-      return t.
-    }
-
-    function lockSteeringAtManeuverTarget {
-      parameter mnv.
-      lock steering to mnv:burnvector.
-    }
-
-    function isManeuverComplete {
-      parameter mnv.
-      if not(defined originalVector) or originalVector = -1 {
-        declare global originalVector to mnv:burnvector.
-      }
-      if vang(originalVector, mnv:burnvector) > 90 {
-        declare global originalVector to -1.
-        return true.
-      }
-      return false.
-    }
-
-    function removeManeuverFromFlightPlan {
-      parameter mnv.
-      remove mnv.
-    }
-
-    function doLaunch {
-      lock throttle to 1.
-      doSafeStage().
-      doSafeStage().
-    }
-
-    function doAscent {
-      lock targetPitch to 88.963 - 1.03287 * alt:radar^0.409511.
-      set targetDirection to 90.
-      lock steering to heading(targetDirection, targetPitch).
-    }
-
-    function doAutoStage {
-      if not(defined oldThrust) {
-        global oldThrust is ship:availablethrust.
-      }
-      if ship:availablethrust < (oldThrust - 10) {
-        until false {
-          doSafeStage(). wait 1.
-          if ship:availableThrust > 0 {
-            break.
-          }
-        }
-        global oldThrust is ship:availablethrust.
-      }
     }
 
     function doShutdown {
@@ -239,9 +148,5 @@
       lock steering to prograde.
     }
 
-    function doSafeStage {
-      wait until stage:ready.
-      stage.
-    }
     export(self).
 }
