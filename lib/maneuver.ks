@@ -14,13 +14,16 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
   local t is 0.
   local targetV is 0.
   local targetP is 0.
-  local steervec is 0.
   local burnMag is 0.
   local staging is import("lib/staging.ks").
   local timeout is 10.
 
-  local node_bestFacing is 5.   // ~5  degrees error (10 degree cone)
-  local node_okFacing   is 20.  // ~20 degrees error (40 degree cone)
+  // Steering and throttle values
+  local steervec is 0.
+  local thrott is 0.
+
+  local node_bestFacing is 1.   // ~1 degree error (2 degree cone)
+  local node_okFacing   is 5.   // ~5 degrees error (10 degree cone)
 
   function getManeuver {
     parameter n is NEXTNODE.
@@ -56,21 +59,48 @@ PRINT("LEC MANEUVER v%VERSION_NUMBER%").
   }
 
   function orientCraft {
-      parameter mnv.
-      set steervec to mnv["burnVec"].
+      parameter mnvNode.
+      set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
       lock steering to steervec.
       return true.
     }
 
   function isOriented {
-    parameter mnv.
-    if utilIsShipFacing(mnv["burnVec"],node_bestFacing,0.5) or
-        ((mnv["burnTime"] - TIME:SECONDS <= staging["burnTimeForDv"](mnv["burnVec"]:mag) / 2) and
-          utilIsShipFacing(mnv["burnVec"],node_okFacing,5)) or
+    parameter mnvNode.
+    if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.5) or
+        ((mnvNode:eta <= staging["burnTimeForDv"](mnvNode:deltav:mag) / 2) and
+          utilIsShipFacing(mnvNode:burnvector,node_okFacing,5)) or
         ship:angularvel:mag < 0.001 {
             return true.
         }
     return false.
+  }
+
+  function nodeComplete {
+    parameter mnvNode is nextnode.
+    local DeltaV is mnvNode:deltav:mag.
+    local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
+    set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
+    if VANG(ship:facing:vector,mnvNode:burnvector) > 1 {
+        return false.
+    }
+    warpUntil(time:seconds + mnvNode:eta - BurnTime - 10).
+    if BurnTime < mnvNode:eta {
+        return false.
+    }
+    set thrott to min(1,BurnTime*2).
+    if DeltaV <= .01 {
+        lock throttle to 0.
+        unlock all.
+        remove mnvNode.
+        clearscreen.
+        pout("Node Executed").
+        return true.
+    }
+    if DeltaV < 0.5 {
+    	set thrott to BurnTime.
+        return false.
+    }
   }
 
   function maneuverComplete {
