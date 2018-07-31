@@ -102,10 +102,14 @@ pout("LEC STAGING v%VERSION_NUMBER%").
     	set stageStdIsp to stageAvgIsp * isp_g0.
 
     	// prepare dry mass for stageDeltaV()
+    	// this will handle asparagus staging by only considering tanks
+    	// that will be staged with the next set of couplers
         local fuelMass is 0.
-        for res in stage:resources {
-          if stagingConsumed:contains(res:name)
-    		    set fuelMass to fuelMass + res:amount*res:density.
+        for p in stagingTanks {
+            for res in p:resources {
+              if stagingConsumed:contains(res:name)
+        		    set fuelMass to fuelMass + res:amount*res:density.
+            }
         }
     	  set stageDryMass to ship:mass-fuelMass.
     }

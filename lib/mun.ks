@@ -1,7 +1,7 @@
 {
     local maneuver is import("lib/maneuver.ks", false).
     local self is lex(
-        "setTransfer", setTransfer@
+        "setMunTransfer", setMunTransfer@
     ).
     // Functional Launch Script
 
@@ -18,8 +18,8 @@
       return replacementFunction@.
     }
 
-    function setTransfer {
-      parameter peri is 80000.
+    function setMunTransfer {
+      local peri is 80000.
       local transfer is list(time:seconds + 30, 0, 0, 0).
       set transfer to improveConverge(transfer, protectFromPast(munTransferScore@:bind(peri))).
       local transNode is Node(transfer[0], transfer[1], transfer[2], transfer[3]).
@@ -38,6 +38,7 @@
         set result to distanceToMunAtApoapsis(mnv).
       }
       remove mnv.
+      if result < 0 { set result to 2^31. }
       return abs(result - peri).
     }
 
@@ -50,11 +51,6 @@
         1
       ).
       return (positionAt(ship, apoapsisTime) - positionAt(Mun, apoapsisTime)):mag.
-    }
-
-    function altitudeAt {
-      parameter t.
-      return (positionAt(ship, t) - positionAt(Kerbin, t)):mag.
     }
 
     function ternarySearch {
@@ -110,22 +106,6 @@
         }
       }
       return bestCandidate.
-    }
-
-    function executeManeuver {
-      parameter mList.
-      local mnvNode is Node(mList).
-      add mnvNode.
-      maneuver["orientCraft"](mnvNode).
-      wait until maneuver["isOriented"](mnvNode).
-      until maneuver["nodeComplete"](mnvNode) { wait 0. doAutoStage(). }
-      lock throttle to 0.
-      unlock steering.
-    }
-
-    function doShutdown {
-      lock throttle to 0.
-      lock steering to prograde.
     }
 
     export(self).
