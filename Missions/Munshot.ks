@@ -13,15 +13,12 @@
         "InitialAscent", { parameter mission. if SHIP:AIRSPEED > 100 { mission["next"](). } },
         "Turn", { parameter mission. ascendControls(). mission["next"](). },
         "Ascend", { parameter mission. ascendControls(). if ship:apoapsis > 100000 and ship:altitude > body:atm:height { mission["next"](). } },
-        "Circularize", { parameter mission. circControls(). if maneuver["circularized"]() { mission["next"](). } },
-        "CalcTransfer", { parameter mission. domun["setTransfer"](60000). maneuver["orientCraft"](). mission["next"](). },
-        "PrepTransfer", { parameter mission. if maneuver["isOriented"]() { mission["next"](). } },
+        "Circularize", { parameter mission. circControls(). if maneuver["circularized"]() { domun["setTransfer"](60000). maneuver["orientCraft"](). mission["next"](). } },
         "Transfer", { parameter mission. if maneuver["nodeComplete"]() { mission["next"](). } },
-        "Capture", { parameter mission. circControls(false). if maneuver["circularized"]() { mission["next"](). } },
-        "CalcLanding", { parameter mission. nav_landing["setTarget"](10.16, 47.5). nav_landing["setLandingNode"](18000). maneuver["orientCraft"](). mission["next"](). },
-        "PrepLanding",  { parameter mission. if maneuver["isOriented"]() { mission["next"](). } },
-        "ExecuteFlyover", { parameter mission. if maneuver["nodeComplete"]() { mission["next"](). } },
-        "Landing", { parameter mission. nav_landing["spotLand"](). mission["endMission"](). }
+        "Capture", { parameter mission. if body = Body("Mun") { mission["next"](). } },
+        "CircMun", { parameter mission. circControls(false). if maneuver["circularized"](false) { maneuver["setInclination"](0). maneuver["orientCraft"](). mission["next"](). } },
+        "Equilize", { parameter mission. if maneuver["nodeComplete"]() { nav_landing["setTarget"](LIST(10.16, 47.5)). nav_landing["setLandingNode"](18000). maneuver["orientCraft"](). mission["next"](). } },
+        "ExecuteLanding", { parameter mission. if maneuver["nodeComplete"]() { nav_landing["spotLand"](). mission["endMission"](). } }
     ).
     local th is 0.
     local st is ship:prograde:forevector.
