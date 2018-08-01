@@ -37,7 +37,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
         ((mnvNode:eta <= BurnTime and // Fair aim, and
           utilIsShipFacing(mnvNode:burnvector,node_okFacing,5)) or // we're running late!
         ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
-        mnvNode:eta/BurnTime < 0.25 { // The time has come, just go for it, and hope it works out...
+        mnvNode:eta/BurnTime < 0.25) { // The time has come, just go for it, and hope it works out...
             return true.
         }
     return false.
@@ -48,7 +48,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     parameter useWarp is true.
     local DeltaV is mnvNode:deltav:mag.
     local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
-    local LowBurn is 1/staging["burnTimeForDv"](0.5).
+    local LowBurn is staging["burnTimeForDv"](0.5).
     local Simmer is LowBurn/2.
     set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
     if not isOriented(mnvNode) {
@@ -56,6 +56,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
         return false.
     }
     if useWarp and (mnvNode:eta > (BurnTime + 15)) {
+      wait 1.
         __["warpUntil"](time:seconds + mnvNode:eta - BurnTime - 10).
     }
     if BurnTime < mnvNode:eta {
@@ -63,7 +64,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
         return false.
     }
     set thrott to max(LowBurn, min(1,BurnTime*2)).
-    if DeltaV <= .01 {
+    if DeltaV <= .1 {
         lock throttle to 0.
         unlock all.
         remove mnvNode.
@@ -77,8 +78,8 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
 
   function setCircAt {
       parameter t is time:seconds + 30.
-      local ovel is velocityat(ship, TIME:SECONDS + t):orbit.
-      local vecHorizontal is vxcl(positionat(ship, TIME:SECONDS + t) + ship:position - body:position, ovel).
+      local ovel is velocityat(ship, t):orbit.
+      local vecHorizontal is vxcl(positionat(ship, t) + ship:position - body:position, ovel).
       set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitude)).
       add nodeFromVector(vecHorizontal - ovel, t).
   }
