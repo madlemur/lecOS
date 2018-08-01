@@ -19,7 +19,7 @@
     }
 
     function setMunTransfer {
-      local peri is 80000.
+      parameter peri is 80000.
       local transfer is list(time:seconds + 30, 0, 0, 0).
       set transfer to improveConverge(transfer, protectFromPast(munTransferScore@:bind(peri))).
       local transNode is Node(transfer[0], transfer[1], transfer[2], transfer[3]).
@@ -40,6 +40,11 @@
       remove mnv.
       if result < 0 { set result to 2^31. }
       return abs(result - peri).
+    }
+
+    function altitudeAt {
+      parameter t.
+      return (positionAt(ship, t) - positionAt(Kerbin, t)):mag.
     }
 
     function distanceToMunAtApoapsis {
