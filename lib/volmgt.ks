@@ -23,7 +23,7 @@ pout("LEC VOLMGT v%VERSION_NUMBER%").
             }
         }
         if isImported("diskio") and not isImported("volmgt"){
-            local dio is import("diskio").
+            local dio is import("diskio", false).
             set dio["findFile"] to findFile@.
             set dio["findSpace"] to findSpace@.
         }

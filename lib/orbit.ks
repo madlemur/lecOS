@@ -4,7 +4,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     local self is lexicon(
         "matchOrbit", matchOrbit@
     ).
-    local maneuver is import("lib/maneuver.ks").
+    local maneuver is import("lib/maneuver.ks", false).
 
     function Change_LAN_Inc {
 
@@ -14,7 +14,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local Rad is -body_pos.
     	local SMA_ship is ship:orbit:semimajoraxis.
     	local LAN_des is DesiredOrbit["LAN"].
-      local LAN_rot is R(0, -LAN_des, 0).
+        local LAN_rot is ANGLEAXIS(-LAN_des, ship:up:vector).
     	local LAN_VEC is (solarprimevector * SMA_ship) * LAN_rot.
     	local Inc_Rotate is ANGLEAXIS(-1 * DesiredOrbit["INC"], LAN_VEC).
     	local Inc_Normal is Inc_Rotate * (V(0,-1,0):direction).
@@ -51,7 +51,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local Rad is -body_pos.
     	local SMA_ship is ship:orbit:semimajoraxis.
     	local LAN_ship is ship:orbit:LAN.
-    	local LAN_VEC is  solarprimevector * (SMA_ship) * R(0,-LAN_ship,0).
+    	local LAN_VEC is  solarprimevector * (SMA_ship) * ANGLEAXIS(-LAN_ship, ship:up:vector).
     	local AngVel_ship is SMA_ship*VCRS(Rad,ship:velocity:orbit):normalized.
     	local AOP_ship is ship:orbit:argumentofperiapsis.
     	local AoP_Rotate is ANGLEAXIS(DesiredOrbit["AOP"],AngVel_ship).
@@ -189,13 +189,13 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
     function matchOrbit {
         parameter DesiredOrbit is lexicon("LAN",ship:orbit:LAN,"INC",ship:orbit:inclination,"AOP",ship:orbit:argumentofperiapsis,"PER",ship:orbit:periapsis,"APO",ship:orbit:apoapsis).
+        if orbit:transition = MANEUVER { return false. }
         local LAN_ship is ship:orbit:LAN.
         local INC_ship is ship:orbit:inclination.
         local AOP_ship is ship:orbit:argumentofperiapsis.
         local PER_ship is ship:orbit:periapsis.
         local APO_ship is ship:orbit:apoapsis.
         local default_DesiredOrbit is lexicon("LAN",LAN_ship,"INC",INC_ship,"AOP",AOP_ship,"PER",PER_ship,"APO",APO_ship).
-        if orbit:transition = MANEUVER { return false. }
         for key in default_DesiredOrbit:keys {
             if not DesiredOrbit:haskey(key) { set DesiredOrbit[key] to default_DesiredOrbit[key]. }
         }
@@ -220,10 +220,6 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         	Change_LAN_Inc(DesiredOrbit).
           if orbit:transition = MANEUVER { maneuver["orientCraft"](). return false. }
         }
-
-        set AOP_ship to ship:orbit:argumentofperiapsis.
-        set PER_ship to ship:orbit:periapsis.
-        set APO_ship to ship:orbit:apoapsis.
 
         local AOP_diff is abs(AOP_ship - DesiredOrbit["AOP"]).
         local APO_diff is abs(APO_ship - DesiredOrbit["APO"]).

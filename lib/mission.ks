@@ -28,7 +28,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     local done is false.
     local runmode is 0.
 
-    local diskio is import("lib/diskio.ks").
+    local diskio is import("lib/diskio.ks", false).
 
     function updateRunmode {
         PARAMETER n is -1.
@@ -80,7 +80,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function resumeMission {
         local fp is diskio["findfile"]("mission.runmode").
         local n is -1.
-        if NOT fp = "" {
+        if NOT (fp = "") {
             local last_mode is open(fp):readall():string.
             set n to indexof(sequence, last_mode).
             if n >= 0 { update_runmode(n / 2). }
@@ -198,7 +198,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function saveState {
         local d is lex().
         local fp is diskio["findFile"]("mission.data").
-        if NOT fp = "" {
+        if NOT (fp = "") {
             set d to readjson(fp).
         }
         if data:length > 0 {
@@ -214,7 +214,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     function loadState {
         local d is lex().
         local fp is diskio["findFile"]("mission.data").
-        if NOT fp = "" {
+        if NOT (fp = "") {
             set d to readjson(fp).
         }
         set data to lex().

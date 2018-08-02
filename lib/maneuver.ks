@@ -11,8 +11,8 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   local targetV is 0.
   local targetP is 0.
   local burnMag is 0.
-  local staging is import("lib/staging.ks").
-  local times is import("lib/time.ks").
+  local staging is import("lib/staging.ks", false).
+  local times is import("lib/time.ks", false).
   local timeout is 10.
 
   // Steering and throttle values
@@ -80,7 +80,8 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
       parameter t is time:seconds + 30.
       local ovel is velocityat(ship, t):orbit.
       local vecHorizontal is vxcl(positionat(ship, t) - body:position, ovel).
-      set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitude)).
+      local altitudeAt is (positionat(ship, t) - body:position):mag.
+      set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitudeAt)).
       add nodeFromVector(vecHorizontal - ovel, t).
   }
 

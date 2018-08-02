@@ -11,7 +11,7 @@ PRINT("LEC BOOTLOADER v%VERSION_NUMBER%").
                 PRINT("Waiting for connection to archive.").
                 set waituntil to TIME:SECONDS + 10.
             }
-            WAIT 0.
+            WAIT 1.
         }
         IF EXISTS("0:"+OSFILE) {
             PRINT("Copying LEC_OS from archive.").

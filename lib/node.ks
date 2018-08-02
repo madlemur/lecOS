@@ -4,7 +4,7 @@ pout("LEC NODE v%VERSION_NUMBER%").
     local self is lexicon().
 
     local nodeList is lexicon().
-    local times is import("lib/time.ks").
+    local times is import("lib/time.ks", false).
 
     function createNode {
         parameter t. // time, in seconds, in the future to create the node

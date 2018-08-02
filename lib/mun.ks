@@ -1,3 +1,5 @@
+@LAZYGLOBAL OFF.
+pout("LEC MUN v%VERSION_NUMBER%").
 {
     local maneuver is import("lib/maneuver.ks", false).
     local self is lex(
