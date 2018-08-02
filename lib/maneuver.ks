@@ -79,7 +79,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   function setCircAt {
       parameter t is time:seconds + 30.
       local ovel is velocityat(ship, t):orbit.
-      local vecHorizontal is vxcl(positionat(ship, t) + ship:position - body:position, ovel).
+      local vecHorizontal is vxcl(positionat(ship, t) - body:position, ovel).
       set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitude)).
       add nodeFromVector(vecHorizontal - ovel, t).
   }
