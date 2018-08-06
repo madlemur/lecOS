@@ -4,8 +4,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   local self is lex (
       "orientCraft", orientCraft@,
       "isOriented", isOriented@,
-      "nodeComplete", nodeComplete@,
-      "setCircAt", setCircAt@
+      "nodeComplete", nodeComplete@
   ).
   local t is 0.
   local targetV is 0.
@@ -23,7 +22,8 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   local node_okFacing   is 5.   // ~5 degrees error (10 degree cone)
 
   function orientCraft {
-      parameter mnvNode is nextnode.
+      parameter mnvNode is 0.
+      if orbit:transition = MANEUVER { set mnvNode to nextnode. } else { return false. }
       set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
       lock steering to steervec.
       lock throttle to thrott.
@@ -31,7 +31,8 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     }
 
   function isOriented {
-    parameter mnvNode is nextnode.
+    parameter mnvNode is 0.
+    if orbit:transition = MANEUVER { set mnvNode to nextnode. } else { return true. }
     local BurnTime is staging["burnTimeForDv"](mnvNode:deltav:mag)/2.
     if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.5) or // Good aim.
         ((mnvNode:eta <= BurnTime and // Fair aim, and
@@ -44,8 +45,9 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   }
 
   function nodeComplete {
-    parameter mnvNode is nextnode.
+    parameter mnvNode is 0.
     parameter useWarp is true.
+    if orbit:transition = MANEUVER { set mnvNode to nextnode. } else { return true. }
     local DeltaV is mnvNode:deltav:mag.
     local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
     local LowBurn is staging["burnTimeForDv"](0.5).

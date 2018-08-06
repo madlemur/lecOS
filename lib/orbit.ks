@@ -2,7 +2,8 @@
 pout("LEC ORBIT v%VERSION_NUMBER%").
 {
     local self is lexicon(
-        "matchOrbit", matchOrbit@
+        "matchOrbit", matchOrbit@,
+        "setCircNodeAt", setCircNodeAt@
     ).
     local maneuver is import("lib/maneuver.ks", false).
 
@@ -186,6 +187,14 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	return NODE(timeat,burn_radial,burn_normal,burn_prograde).
     }
 
+    function setCircNodeAt {
+        parameter t is time:seconds + 30.
+        local ovel is velocityat(ship, t):orbit.
+        local vecHorizontal is vxcl(positionat(ship, t) - body:position, ovel).
+        local altitudeAt is (positionat(ship, t) - body:position):mag.
+        set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitudeAt)).
+        add SetNode_BurnVector(t, vecHorizontal).
+    }
 
     function matchOrbit {
         parameter DesiredOrbit is lexicon("LAN",ship:orbit:LAN,"INC",ship:orbit:inclination,"AOP",ship:orbit:argumentofperiapsis,"PER",ship:orbit:periapsis,"APO",ship:orbit:apoapsis).
@@ -218,7 +227,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         	}
         	pout("Running Change_LAN_Inc").
         	Change_LAN_Inc(DesiredOrbit).
-          if orbit:transition = MANEUVER { maneuver["orientCraft"](). return false. }
+          if orbit:transition = MANEUVER { wait 0. return false. }
         }
 
         local AOP_diff is abs(AOP_ship - DesiredOrbit["AOP"]).
@@ -249,8 +258,9 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
         	pout("Running Change_AoP_PerApo").
         	Change_AoP_PerApo(DesiredOrbit).
-        	if orbit:transition = MANEUVER { maneuver["orientCraft"](). return false. }
+        	if orbit:transition = MANEUVER { wait 0. return false. }
         }
+        // Current orbit matches desired orbit, within tolerances
         return true.
     }
     export(self).

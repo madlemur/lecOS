@@ -40,7 +40,8 @@
             parameter mission.
             ascendControls().
             if ship:apoapsis > 100000 and ship:altitude > body:atm:height {
-                maneuver["setCircAt"](eta:apoapsis + TIME:SECONDS).
+                orbiter["setCircAt"](eta:apoapsis + TIME:SECONDS).
+                wait 0.
                 maneuver["orientCraft"]().
                 mission["next"]().
             }
@@ -49,6 +50,7 @@
             parameter mission.
             if maneuver["nodeComplete"]() {
                 domun["setMunTransfer"](20000).
+                wait 0.
                 maneuver["orientCraft"]().
                 mission["next"]().
             }
@@ -69,8 +71,9 @@
             __["warpUntil"](times["diffTime"]("correction")).
             wait 1.
             if (not (ship:orbit:transition = "ENCOUNTER")) OR
-            (ship:orbit:nextpatch:periapsis < 10000) {
-                domun["setTransfer"](20000).
+            (ship:orbit:nextpatch:periapsis < 15000) {
+                domun["setMunTransfer"](20000).
+                wait 0.
                 maneuver["orientCraft"]().
                 mission["setRunMode"]("Transfer").
             } else {
@@ -81,17 +84,32 @@
         "WaitForSOI", {
             parameter mission.
             if body = Mun {
-                if not orbiter["matchOrbit"](lex("PER", PERIAPSIS, "APO", PERIAPSIS, "INC", 0)) {
-                    maneuver["nodeComplete"]().
+                local t is time:seconds + eta:periapsis.
+                if periapsis < 15000 {
+                    while ((positionat(ship, t) - body:position):mag < 15000) AND (t > (time:seconds + 15)) { set t to t - 10. }
+                }
+                orbiter["setCircNodeAt"](t).
+                wait 0.
+                maneuver["orientCraft"]().
+                mission["next"]().
+            }
+        },
+        "CircularizeAndFlatten", {
+            parameter mission.
+            if maneuver["nodeComplete"](). {
+                if not orbiter["matchOrbit"](lex("PER", 15000, "APO", 15000, "INC", 0)) {
+                    wait 0.
+                    maneuver["orientCraft"]().
                 } else {
                     mission["next"]().
                 }
             }
         },
-        "Capture", {
+        "Deorbit", {
             parameter mission.
             nav_landing["setTarget"](list(10.16, 47.5)).
             nav_landing["setLandingNode"](8000).
+            wait 0.
             maneuver["orientCraft"]().
             mission["next"]().
         },
