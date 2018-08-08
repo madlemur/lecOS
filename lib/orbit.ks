@@ -65,7 +65,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local AoP_timeat is time:seconds + AoP_eta.
 
     	Apoapsis_Set_TimeAt(AoP_timeat,DesiredOrbit).
-        if NOT (orbit:transition = MANEUVER) {
+        if NOT (orbit:transition = "MANEUVER") {
     	    local New_Apo_time is time:seconds + eta:apoapsis.
     	    Periapsis_Set_TimeAt(New_Apo_time,DesiredOrbit).
     	}
@@ -192,13 +192,13 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         local ovel is velocityat(ship, t):orbit.
         local vecHorizontal is vxcl(positionat(ship, t) - body:position, ovel).
         local altitudeAt is (positionat(ship, t) - body:position):mag.
-        set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitudeAt)).
+        set vecHorizontal:mag to sqrt(body:MU/altitudeAt).
         add SetNode_BurnVector(t, vecHorizontal).
     }
 
     function matchOrbit {
         parameter DesiredOrbit is lexicon("LAN",ship:orbit:LAN,"INC",ship:orbit:inclination,"AOP",ship:orbit:argumentofperiapsis,"PER",ship:orbit:periapsis,"APO",ship:orbit:apoapsis).
-        if orbit:transition = MANEUVER { return false. }
+        if orbit:transition = "MANEUVER" { return false. }
         local LAN_ship is ship:orbit:LAN.
         local INC_ship is ship:orbit:inclination.
         local AOP_ship is ship:orbit:argumentofperiapsis.
@@ -227,7 +227,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         	}
         	pout("Running Change_LAN_Inc").
         	Change_LAN_Inc(DesiredOrbit).
-          if orbit:transition = MANEUVER { wait 0. return false. }
+          if orbit:transition = "MANEUVER" { wait 0. return false. }
         }
 
         local AOP_diff is abs(AOP_ship - DesiredOrbit["AOP"]).
@@ -258,7 +258,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
         	pout("Running Change_AoP_PerApo").
         	Change_AoP_PerApo(DesiredOrbit).
-        	if orbit:transition = MANEUVER { wait 0. return false. }
+        	if orbit:transition = "MANEUVER" { wait 0. return false. }
         }
         // Current orbit matches desired orbit, within tolerances
         return true.

@@ -95,7 +95,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function setRunmode {
         PARAMETER mn.
-        local ix is hasRunmode(mn).
+        local ix is indexof(sequence, mn).
         if ix >= 0 {
             updateRunmode(ix / 2).
             return true.
