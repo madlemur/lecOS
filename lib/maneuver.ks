@@ -23,7 +23,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
 
   function orientCraft {
       parameter mnvNode is 0.
-      if orbit:transition = "MANEUVER" { set mnvNode to nextnode. } else { return false. }
+      if HASNODE { set mnvNode to nextnode. } else { return false. }
       set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
       set thrott to 0.
       lock steering to steervec.
@@ -33,7 +33,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
 
   function isOriented {
     parameter mnvNode is 0.
-    if orbit:transition = "MANEUVER" { set mnvNode to nextnode. } else { return true. }
+    if HASNODE { set mnvNode to nextnode. } else { return true. }
     local BurnTime is staging["burnTimeForDv"](mnvNode:deltav:mag)/2.
     if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.5) or // Good aim.
         ((mnvNode:eta <= BurnTime and // Fair aim, and
@@ -48,7 +48,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   function nodeComplete {
     parameter mnvNode is 0.
     parameter useWarp is true.
-    if orbit:transition = "MANEUVER" { set mnvNode to nextnode. } else { pout("orbit:transition = " + orbit:transition). unlock all. set thrott to 0. return true. }
+    if HASNODE { set mnvNode to nextnode. } else { pout("orbit:transition = " + orbit:transition). unlock all. set thrott to 0. return true. }
     local DeltaV is mnvNode:deltav:mag.
     local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
     local LowBurn is staging["burnTimeForDv"](0.5).
