@@ -78,10 +78,15 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
 
   function setCircAt {
       parameter t is time:seconds + 30.
+      // orbital velocity at t
       local ovel is velocityat(ship, t):orbit.
+      // remove radial component, so it's only the "horizontal" velocity
       local vecHorizontal is vxcl(positionat(ship, t) - body:position, ovel).
+      // Determine the altitude at t
       local altitudeAt is (positionat(ship, t) - body:position):mag.
-      set vecHorizontal:mag to sqrt(body:MU/(body:radius + altitudeAt)).
+      // Make that "horizontal" velocity a circular orbits velocity
+      set vecHorizontal:mag to sqrt(body:MU/(altitudeAt)).
+      // create and add the node
       add nodeFromVector(vecHorizontal - ovel, t).
   }
 

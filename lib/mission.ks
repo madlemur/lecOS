@@ -83,7 +83,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
         if NOT (fp = "") {
             local last_mode is open(fp):readall():string.
             set n to indexof(sequence, last_mode).
-            if n >= 0 { update_runmode(n / 2). }
+            if n >= 0 { updateRunmode(n / 2). }
         }
         return n.
     }

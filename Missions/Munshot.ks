@@ -69,8 +69,9 @@
             __["warpUntil"](times["diffTime"]("correction")).
             wait 1.
             if (not (ship:orbit:transition = "ENCOUNTER")) OR
-            (ship:orbit:nextpatch:periapsis < 10000) {
-                domun["setTransfer"](20000).
+            (ship:orbit:nextpatch:periapsis < 10000) OR
+            (ship:orbit:nextpatch:periapsis > 1000000) {
+                domun["setMunTransfer"](20000).
                 maneuver["orientCraft"]().
                 mission["setRunMode"]("Transfer").
             } else {
