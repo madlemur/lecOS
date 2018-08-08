@@ -5,6 +5,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
     local self is lex(
         "setMunTransfer", setMunTransfer@
     ).
+    local transnode is 0.
     // Functional Launch Script
 
     function protectFromPast {
@@ -23,24 +24,30 @@ pout("LEC MUN v%VERSION_NUMBER%").
     function setMunTransfer {
       parameter peri is 80000.
       local transfer is list(time:seconds + 30, 0, 0, 0).
-      set transfer to improveConverge(transfer, protectFromPast(munTransferScore@:bind(peri))).
-      local transNode is Node(transfer[0], transfer[1], transfer[2], transfer[3]).
+      set transNode to Node(transfer[0], transfer[1], transfer[2], transfer[3]).
       add transNode.
+      wait 0.
+      set transfer to improveConverge(transfer, protectFromPast(munTransferScore@:bind(peri))).
+      set transnode:eta to transfer[0] - TIME:SECONDS.
+      set transnode:radialout to transfer[1].
+      set transnode:normal to transfer[2].
+      set transnode:prograde to transfer[3].
     }
 
     function munTransferScore {
       parameter peri.
       parameter data.
-      local mnv is node(data[0], data[1], data[2], data[3]).
-      add mnv.
+      set transnode:eta to data[0] - TIME:SECONDS.
+      set transnode:radialout to data[1].
+      set transnode:normal to data[2].
+      set transnode:prograde to data[3].
       local result is 0.
-      if mnv:orbit:hasNextPatch {
-        set result to mnv:orbit:nextPatch:periapsis.
+      if transnode:orbit:hasNextPatch {
+        set result to transnode:orbit:nextPatch:periapsis.
       } else {
-        set result to distanceToMunAtApoapsis(mnv).
+        set result to distanceToMunAtApoapsis(transnode).
       }
-      remove mnv.
-      if result < 0 { set result to 2^31. }
+      if result < 0 { set result to result^2 + transnode:orbit:nextPatch:body:radius. }
       return abs(result - peri).
     }
 
@@ -78,7 +85,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
 
     function improveConverge {
       parameter data, scoreFunction.
-      for stepSize in list(100, 10, 1) {
+      for stepSize in list(list(100, 0, 0, 100), list(10, 0, 0, 10), list(1, 1, 0, 1)) {
         until false {
           local oldScore is scoreFunction(data).
           set data to improve(data, stepSize, scoreFunction).
@@ -96,14 +103,26 @@ pout("LEC MUN v%VERSION_NUMBER%").
       local bestCandidate is data.
       local candidates is list().
       local index is 0.
-      until index >= data:length {
-        local incCandidate is data:copy().
-        local decCandidate is data:copy().
-        set incCandidate[index] to incCandidate[index] + stepSize.
-        set decCandidate[index] to decCandidate[index] - stepSize.
-        candidates:add(incCandidate).
-        candidates:add(decCandidate).
-        set index to index + 1.
+      // If stepsize is a scalar, use it for all data values
+      if (not stepSize:isType("List")) {
+          local foo is list().
+          FROM { local i is 0. } UNTIL i < data:length STEP { set i to i + 1. } DO { foo:add(stepSize). }
+          set stepSize to foo.
+      }
+      // If the list is shorter than the data list, don't try to improve those data points
+      if stepSize:length < data:length {
+          from { local i is stepSize:length. } until i > data:length step { set i to i + 1. } do { stepSize:add(0). }
+      }
+
+      from { local index is 0. } until index >= data:length step { set index to index + 1. } do {
+        if stepSize[index] > 0 {
+            local incCandidate is data:copy().
+            local decCandidate is data:copy().
+            set incCandidate[index] to incCandidate[index] + stepSize[index].
+            set decCandidate[index] to decCandidate[index] - stepSize[index].
+            candidates:add(incCandidate).
+            candidates:add(decCandidate).
+          }
       }
       for candidate in candidates {
         local candidateScore is scoreFunction(candidate).
