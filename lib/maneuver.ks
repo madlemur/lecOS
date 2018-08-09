@@ -33,12 +33,12 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
 
   function isOriented {
     parameter mnvNode is 0.
-    if HASNODE { set mnvNode to nextnode. } else { return true. }
+    if NOT mnvNode:isType("ManeuverNode") { if HASNODE { set mnvNode to nextnode. } else { return true. } }
     local BurnTime is staging["burnTimeForDv"](mnvNode:deltav:mag)/2.
     if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.5) or // Good aim.
         ((mnvNode:eta <= BurnTime and // Fair aim, and
           utilIsShipFacing(mnvNode:burnvector,node_okFacing,5)) or // we're running late!
-        ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
+        // ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
         mnvNode:eta/BurnTime < 0.25) { // The time has come, just go for it, and hope it works out...
             return true.
         }
@@ -63,11 +63,14 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
         __["warpUntil"](time:seconds + mnvNode:eta - BurnTime - 10).
     }
     if BurnTime < mnvNode:eta {
+      print "waiting to burn" at (0,0).
         set thrott to 0.
         return false.
     }
     set thrott to max(LowBurn, min(1,BurnTime*2)).
+    print "burning at  " + round(max(LowBurn, min(1,BurnTime*2)) * 100, 2) + "%    " at (0,0).
     if DeltaV <= .1 {
+      print "burn completed                    " at (0,0).
         set thrott to 0.
         unlock all.
         remove mnvNode.
@@ -75,6 +78,7 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     }
     if DeltaV < 0.5 {
     	set thrott to max(Simmer, BurnTime).
+      print "smudging at " + round(max(Simmer,BurnTime) * 100, 2) + "%    " at (0,0).
         return false.
     }
   }

@@ -77,7 +77,7 @@
         },
         "MidCourseCorrection", {
             parameter mission.
-            __["warpUntil"](times["diffTime"]("correction")).
+            __["warpUntil"](time:seconds + times["diffTime"]("correction")).
             wait 1.
             if (not (ship:orbit:transition = "ENCOUNTER")) OR
             (ship:orbit:nextpatch:periapsis < 10000) OR
@@ -111,7 +111,8 @@
         },
         "CircularizeAndFlatten", {
             parameter mission.
-            if maneuver["nodeComplete"](). {
+            if maneuver["nodeComplete"]() {
+              pout("Checking capture orbit").
                 if not orbiter["matchOrbit"](lex("PER", 15000, "APO", 15000, "INC", 0)) {
                     wait 0.
                     maneuver["orientCraft"]().

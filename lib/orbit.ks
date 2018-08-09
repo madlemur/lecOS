@@ -15,7 +15,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local Rad is -body_pos.
     	local SMA_ship is ship:orbit:semimajoraxis.
     	local LAN_des is DesiredOrbit["LAN"].
-        local LAN_rot is ANGLEAXIS(-LAN_des, ship:up:vector).
+      local LAN_rot is ANGLEAXIS(-LAN_des, ship:up:vector).
     	local LAN_VEC is (solarprimevector * SMA_ship) * LAN_rot.
     	local Inc_Rotate is ANGLEAXIS(-1 * DesiredOrbit["INC"], LAN_VEC).
     	local Inc_Normal is Inc_Rotate * (V(0,-1,0):direction).
@@ -38,8 +38,9 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local New_Vel_at_LAN is (Vel_at_LAN:mag)*vel_rotated:vector.
 
     	local LAN_node is SetNode_BurnVector(time:seconds + LAN_eta,New_Vel_at_LAN).
-        if LAN_node:burnvector:mag > 0.5 {
-    	    add LAN_node.
+        add LAN_node.
+        if LAN_node:burnvector:mag < 0.5 {
+    	    remove LAN_node.
     	}
 
     }
@@ -140,8 +141,9 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local V_aop_new_vec is V_aop_speed*temp_vec.
 
     	local APO_node is SetNode_BurnVector(AoP_timeat,V_aop_new_vec).
-        if V_aop_new_vec:mag > 0.1 {
-    	    add APO_node.
+        add APO_node.
+        if APO_node:burnvector:mag < 0.1 {
+    	    remove APO_node.
         }
     }
 
@@ -158,9 +160,9 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local V_ap_current_speed is velocityat(ship,New_Apo_time):orbit:mag.
 
     	local delta_v_node is V_ap_new_speed - V_ap_current_speed.
-    	local PER_node is node(New_Apo_time,0,0,delta_v_node).
-        if delta_v_node:mag > 0.1 {
-    	    add PER_node.
+
+        if delta_v_node > 0.1 {
+    	    add node(New_Apo_time,0,0,delta_v_node).
     	}
     }
 
