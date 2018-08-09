@@ -23,7 +23,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
 
     function setMunTransfer {
       parameter peri is 80000.
-      local transfer is list(time:seconds + 30, 0, 0, 0).
+      local transfer is list(time:seconds + 30, 0, 0, 800).
       set transNode to Node(transfer[0], transfer[1], transfer[2], transfer[3]).
       add transNode.
       wait 0.
@@ -47,7 +47,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
       } else {
         set result to distanceToMunAtApoapsis(transnode).
       }
-      if result < 0 { set result to result^2 + transnode:orbit:nextPatch:body:radius. }
+      if result < 0 { set result to result^2 + Mun:radius. }
       return abs(result - peri).
     }
 
@@ -67,6 +67,20 @@ pout("LEC MUN v%VERSION_NUMBER%").
       return (positionAt(ship, apoapsisTime) - positionAt(Mun, apoapsisTime)):mag.
     }
 
+    function improveConverge {
+      parameter data, scoreFunction.
+      for stepSize in list(list(100, 0, 0, 10), list(10, 0, 0, 1), list(1, 1, 0, .1)) {
+        until false {
+          local oldScore is scoreFunction(data).
+          set data to improve(data, stepSize, scoreFunction).
+          if oldScore <= scoreFunction(data) {
+            break.
+          }
+        }
+      }
+      return data.
+    }
+
     function ternarySearch {
       parameter f, left, right, absolutePrecision.
       until false {
@@ -81,20 +95,6 @@ pout("LEC MUN v%VERSION_NUMBER%").
           set right to rightThird.
         }
       }
-    }
-
-    function improveConverge {
-      parameter data, scoreFunction.
-      for stepSize in list(list(100, 0, 0, 100), list(10, 0, 0, 10), list(1, 1, 0, 1)) {
-        until false {
-          local oldScore is scoreFunction(data).
-          set data to improve(data, stepSize, scoreFunction).
-          if oldScore <= scoreFunction(data) {
-            break.
-          }
-        }
-      }
-      return data.
     }
 
     function improve {
