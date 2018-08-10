@@ -1,4 +1,4 @@
-@LAZYGLOBAL OFF.
+//@LAZYGLOBAL OFF.
 pout("LEC NAV_LANDING v%VERSION_NUMBER%").
 {
     local self is lex(
@@ -183,12 +183,12 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         local R is ship:body:position.
         local V is ship:velocity:orbit.
         local MaxThrustAccHor is availablethrust/mass.
-        local angle_diff_h is VANG(-R, landing_pos:position - R).
+        local angle_diff_h is VANG(-R, tgtLoc:position - R).
         local dist_diff_h is (angle_diff_h/360)*2*(constant:pi)*R:mag.
         local Vmax is sqrt(MAX(0.001,2*(dist_diff_h - buffer_dist)*MaxThrustAccHor)).
 
         local dir_check_vel is VCRS(V,R).
-        local dir_check_pos is VCRS(-R,landing_pos:position-R).
+        local dir_check_pos is VCRS(-R,tgtLoc:position-R).
         local dir_check is 1.
         if VDOT(dir_check_vel,dir_check_pos) > 0 {
             set dir_check to 1.
@@ -202,8 +202,8 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
     function Follow_throttle_func {
         local R is ship:body:position.
         local V is ship:velocity:surface.
-        local V_ref is (V:mag)*(landing_pos:position:normalized).
-        local h is altitude - landing_pos:terrainheight. // used to adjust the V_ref later
+        local V_ref is (V:mag)*(tgtLoc:position:normalized).
+        local h is altitude - tgtLoc:terrainheight. // used to adjust the V_ref later
         local V_diff is V_ref - V.
         local throttle_sel is (V_diff*mass)/availablethrust.
 
@@ -217,7 +217,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         local S is V:mag.
         local V_side is VCRS(V,R):normalized.
         local V_per is VCRS(R,V_side):normalized.
-        local T_vec is VCRS(R,VCRS(landing_pos:position,R)):normalized.
+        local T_vec is VCRS(R,VCRS(tgtLoc:position,R)):normalized.
         local delta_v is -1*VDOT(V_side,(T_vec*S - V_per*S)).
 
         return delta_v.
@@ -235,60 +235,63 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         lock R to ship:body:position.
         lock V_surf to ship:velocity:surface.
         lock g to ship:body:mu/(R:mag^2).
-        lock Velocity_h_norm to VCRS(VCRS(R,landing_pos:position),R):normalized.
+        lock Velocity_h_norm to VCRS(VCRS(R,tgtLoc:position),R):normalized.
         lock Speed_h to VDOT(Velocity_h_norm,ship:velocity:surface).
-        lock speed_diff_h to Speed_h-landing_pos:altitudevelocity(altitude):orbit:mag.
+        lock speed_diff_h to Speed_h-tgtLoc:altitudevelocity(altitude):orbit:mag.
         lock true_alt to altitude - ship:geoposition:terrainheight.
 
         lock V_vec to UP:vector.
         lock H_vec to VCRS(R,VCRS(V_surf,R)):normalized.
         lock S_vec to -1*VCRS(V_surf,R):normalized.
 
-        set KP_V to .01.
-        set KD_V to 0.005.
-        set V_throttle_PID to PIDLOOP(KP_V,0,KD_V,0,1).
+        local KP_V to .01.
+        local KD_V to 0.005.
+        local V_throttle_PID to PIDLOOP(KP_V,0,KD_V,0,1).
         set V_throttle_PID:setpoint to Vmax_v().
+        local V_throttle is 0.
 
-        set KP_H to .01.
-        set KD_H to 0.002.//0.02.
-        set H_throttle_PID to PIDLOOP(KP_H,0,KD_H,-1,1).
+        local KP_H to .01.
+        local KD_H to 0.002.//0.02.
+        local H_throttle_PID to PIDLOOP(KP_H,0,KD_H,-1,1).
         set H_throttle_PID:setpoint to Vmax_h().
+        local H_throttle is 0.
+        local H_throttle_test is 0.
 
-        set KS to 1/5. // Time constant
-        set S_throttle to S_throttle_func(2).
+        local KS to 1/5. // Time constant
+        local S_throttle to S_throttle_func(2).
 
-        set throttle_vec to V_vec*V_throttle_PID:update(time:seconds,-1*verticalspeed) + H_vec*H_throttle_PID:update(time:seconds,Speed_h) + S_vec*S_throttle.
+        local throttle_vec to V_vec*V_throttle_PID:update(time:seconds,-1*verticalspeed) + H_vec*H_throttle_PID:update(time:seconds,Speed_h) + S_vec*S_throttle.
 
         lock steering to throttle_vec:direction.
 
-        lock land_surf to VANG(landing_pos:position,ship:velocity:surface).
+        lock land_surf to VANG(tgtLoc:position,ship:velocity:surface).
 
         clearscreen.
 
-        set touchdown_speed to -5.
-        set alt_cutoff to 100.
+        local touchdown_speed to -5.
+        local alt_cutoff to 100.
 
-        set throttle_hyst to false.
-        set throttle_hyst_UL to 25.
-        set throttle_hyst_LL to 1.
+        local throttle_hyst to false.
+        local throttle_hyst_UL to 25.
+        local throttle_hyst_LL to 1.
 
-        set ang_hyst to false.
-        set ang_hyst_UL to 50.
-        set ang_hyst_LL to 10.
+        local ang_hyst to false.
+        local ang_hyst_UL to 50.
+        local ang_hyst_LL to 10.
 
-        set left_over_flag to false.
-        set Follow_Mode to false.
-        set TouchDown_Mode to false.
+        local left_over_flag to false.
+        local Follow_Mode to false.
+        local TouchDown_Mode to false.
 
-        set LandingVector to VECDRAW((alt:radar)*(landing_pos:position - R):normalized,landing_pos:position,GREEN,"Landing Position",1.0,TRUE,.5).
-        set LandingVector:vectorupdater to { return (altitude-landing_pos:terrainheight)*(landing_pos:position - R):normalized.}.
-        set LandingVector:startupdater to { return landing_pos:position.}.
+        local LandingVector to VECDRAW((alt:radar)*(tgtLoc:position - R):normalized,tgtLoc:position,GREEN,"Landing Position",1.0,TRUE,.5).
+        set LandingVector:vectorupdater to { return (altitude-tgtLoc:terrainheight)*(tgtLoc:position - R):normalized.}.
+        set LandingVector:startupdater to { return tgtLoc:position.}.
 
-        set LandingPositionVector to VECDRAW(V(0,0,0),landing_pos:position,RED,"Landing Vector",1.0,TRUE,.5).
-        set LandingPositionVector:vectorupdater to { return landing_pos:position.}.
+        local LandingPositionVector to VECDRAW(V(0,0,0),tgtLoc:position,RED,"Landing Vector",1.0,TRUE,.5).
+        set LandingPositionVector:vectorupdater to { return tgtLoc:position.}.
         set LandingPositionVector:startupdater to { return V(0,0,0).}.
 
-        set SurfaceVelocity to VECDRAW(V(0,0,0),ship:velocity:surface,BLUE,"Surface Velocity",1.0,TRUE,.5).
+        local SurfaceVelocity to VECDRAW(V(0,0,0),ship:velocity:surface,BLUE,"Surface Velocity",1.0,TRUE,.5).
         set SurfaceVelocity:vectorupdater to { return ship:velocity:surface.}.
         set SurfaceVelocity:startupdater to { return V(0,0,0).}.
 
@@ -300,17 +303,14 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         local hthrot is th_box:addhlayout().
         local sthrot is th_box:addhlayout().
 
-        local vth1 is vthrot:addlabel().
-        set vth1:text to "V_throttle = ".
-        local vth2 is vthrot:addLabel().
+        vthrot:addlabel("V_throttle = ").
+        local vth2 is vthrot:addLabel("").
 
-        local hth1 is hthrot:addlabel().
-        set hth1:text to "H_throttle = ".
-        local hth2 is hthrot:addLabel().
+        hthrot:addlabel("H_throttle = ").
+        local hth2 is hthrot:addLabel("").
 
-        local sth1 is sthrot:addlabel().
-        set sth1:text to "S_throttle = ".
-        local sth2 is sthrot:addLabel().
+        sthrot:addlabel("S_throttle = ").
+        local sth2 is sthrot:addLabel("").
 
         telemetry:show().
 
@@ -358,7 +358,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         		set S_throttle to S_throttle_test.
         		set H_throttle to H_throttle_test.
         	}
-        	set Follow_Mode_Ang to VANG(landing_pos:position,ship:velocity:surface).
+        	set Follow_Mode_Ang to VANG(tgtLoc:position,ship:velocity:surface).
         	if Follow_Mode_Ang <15 {
         		set Follow_Mode to True.
         	}

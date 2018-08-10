@@ -35,10 +35,10 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     parameter mnvNode is 0.
     if NOT mnvNode:isType("ManeuverNode") { if HASNODE { set mnvNode to nextnode. } else { return true. } }
     local BurnTime is staging["burnTimeForDv"](mnvNode:deltav:mag)/2.
-    if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.5) or // Good aim.
+    if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.25) or // Good aim.
         ((mnvNode:eta <= BurnTime and // Fair aim, and
-          utilIsShipFacing(mnvNode:burnvector,node_okFacing,5)) or // we're running late!
-        // ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
+          utilIsShipFacing(mnvNode:burnvector,node_okFacing,2)) or // we're running late!
+        ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
         mnvNode:eta/BurnTime < 0.25) { // The time has come, just go for it, and hope it works out...
             return true.
         }
@@ -49,19 +49,21 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     parameter mnvNode is 0.
     parameter useWarp is true.
     if HASNODE { set mnvNode to nextnode. } else { pout("orbit:transition = " + orbit:transition). unlock all. set thrott to 0. return true. }
-    local DeltaV is mnvNode:deltav:mag.
-    local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
-    local LowBurn is staging["burnTimeForDv"](0.5).
-    local Simmer is LowBurn/2.
     set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
+    wait 0.1.
     if not isOriented(mnvNode) {
         set thrott to 0.
         return false.
     }
+    local DeltaV is mnvNode:deltav:mag.
+    local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
+    local LowBurn is staging["burnTimeForDv"](0.5).
+    local Simmer is LowBurn/2.
     if useWarp and (mnvNode:eta > (BurnTime + 15)) {
       wait 1.
         __["warpUntil"](time:seconds + mnvNode:eta - BurnTime - 10).
     }
+
     if BurnTime < mnvNode:eta {
       print "waiting to burn" at (0,0).
         set thrott to 0.
