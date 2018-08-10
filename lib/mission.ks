@@ -32,6 +32,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
 
     function updateRunmode {
         PARAMETER n is -1.
+        if runmode = n { return true. }
         if n = -1 set n to runmode + 1.
         if n * 2 < sequence:length {
             saveState().
@@ -45,6 +46,7 @@ pout("LEC MISSION v%VERSION_NUMBER%").
             file:write(sequence[2 * n]).
             set runmode to n.
             loadState().
+            pout(sequence[2 * n], false).
             return true.
         } else {
             pout("Runmode " + n + " is out of bounds.").

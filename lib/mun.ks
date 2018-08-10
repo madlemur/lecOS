@@ -23,7 +23,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
 
     function setMunTransfer {
       parameter peri is 80000.
-      local transfer is list(time:seconds + 30, 0, 0, 800).
+      local transfer is list(time:seconds + 30, 0, 0, 0).
       set transNode to Node(transfer[0], transfer[1], transfer[2], transfer[3]).
       add transNode.
       wait 0.
@@ -69,7 +69,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
 
     function improveConverge {
       parameter data, scoreFunction.
-      for stepSize in list(list(100, 0, 0, 10), list(10, 0, 0, 1), list(1, 1, 0, .1)) {
+      for stepSize in list(list(100, 10, 0, 100), list(10, 5, 0, 10), list(1, 1, 0, 1)) {
         until false {
           local oldScore is scoreFunction(data).
           set data to improve(data, stepSize, scoreFunction).
