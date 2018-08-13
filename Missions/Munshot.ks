@@ -113,24 +113,31 @@
                 }
             }
         },
-        "Deorbit", {
+        "PrepDeorbit", {
             parameter mission.
             local targetLatLn is list(-2.75, 11.5).
             nav_landing["setTarget"](targetLatLn).
             mission["addData"]("landingTarget", targetLatLn, true).
+            pout("Planning low-pass orbit").
             nav_landing["setLandingNode"](8000).
             wait 1.
             maneuver["orientCraft"]().
             wait 1.
             mission["next"]().
         },
+        "Deorbit", {
+            parameter mission.
+            if maneuver["nodeComplete"]() {
+                pout("Land at site").
+                mission["next"]().
+            }
+        }
         "ExecuteLanding", {
             parameter mission.
             if NOT nav_landing["hasTarget"]() {
                 nav_landing["setTarget"](mission["getData"]("landingTarget")).
             }
-            if maneuver["nodeComplete"]() {
-                nav_landing["spotLand"]().
+            if nav_landing["spotLand"]().
                 mission["endMission"]().
             }
         }

@@ -215,7 +215,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
             if not DesiredOrbit:haskey(key) { set DesiredOrbit[key] to default_DesiredOrbit[key]. }
         }
         pout(DesiredOrbit).
-        local tolerance_angle is 0.01.
+        local tolerance_angle is 0.1.
         local LAN_diff is abs(DesiredOrbit["LAN"] - LAN_ship).
         local INC_diff is abs(DesiredOrbit["INC"] - INC_ship).
 
@@ -233,7 +233,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         	}
         	pout("Running Change_LAN_Inc").
         	Change_LAN_Inc(DesiredOrbit).
-          if HASNODE { wait 0. return false. }
+          if HASNODE { return false. }
         }
 
         local AOP_diff is abs(AOP_ship - DesiredOrbit["AOP"]).
