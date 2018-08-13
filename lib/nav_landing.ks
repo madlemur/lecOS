@@ -115,7 +115,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
     	local angle_rotate_inc is ANGLEAXIS(des_inc,-body_vec).
     	local new_vel_vec is vel_vec*angle_rotate_inc.
     	local new_norm is VCRS(body_vec,new_vel_vec).
-    	local rad_des is Des_Peri_RadialBurn(landing_peri).
+    	local rad_des is Des_Peri_RadialBurn(des_peri).
 
     	local angle_rotate_rad is ANGLEAXIS(rad_des,new_norm).
     	set new_vel_vec to new_vel_vec*angle_rotate_rad.
@@ -130,11 +130,11 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
             pout("Target not set for landing.").
             return false.
         }
-        if ship:orbit:eccentricity > 0.001 {
+        if ship:orbit:eccentricity > 0.01 {
             pout("Orbit is too eccentric, please circularize.").
             return false.
         }
-        if abs(ship:orbit:inclination) > 0.001 {
+        if abs(ship:orbit:inclination) > 0.01 {
             pout("Orbit is too inclined, please equitorialize.").
             return false.
         }
@@ -159,7 +159,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         return true.
     }
     function Hysteresis {
-        declare parameter input,prev_output, right_hand_limit, left_hand_limit,right_hand_output is true.
+        parameter input,prev_output, right_hand_limit, left_hand_limit,right_hand_output is true.
         local output is prev_output.
         if prev_output = right_hand_output {
             if input <= left_hand_limit {
@@ -174,7 +174,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
     }
 
     function Vmax_v {
-        declare parameter buffer_terrain is 0, TouchDownSpeed is 5.
+        parameter buffer_terrain is 0, TouchDownSpeed is 5.
         local true_alt to altitude - ship:geoposition:terrainheight.
         local V to ship:velocity:orbit.
         local Ra to ship:body:position.
