@@ -44,6 +44,9 @@ pout("LEC MUN v%VERSION_NUMBER%").
       local result is 0.
       if transnode:orbit:hasNextPatch {
         set result to transnode:orbit:nextPatch:periapsis.
+        if abs(transnode:orbit:netPatch:inclination) > 90 {
+          set result to transnode:orbit:netPatch:body:soiradius - 1/result to transnode:orbit:nextPatch:periapsis.
+        }
       } else {
         set result to distanceToMunAtApoapsis(transnode).
       }
@@ -69,7 +72,7 @@ pout("LEC MUN v%VERSION_NUMBER%").
 
     function improveConverge {
       parameter data, scoreFunction.
-      for stepSize in list(list(100, 10, 0, 100), list(10, 5, 0, 10), list(1, 1, 0, 1)) {
+      for stepSize in list(list(100, 0, 0, 100), list(10, 0, 0, 10), list(1, 1, 0, 1)) {
         until false {
           local oldScore is scoreFunction(data).
           set data to improve(data, stepSize, scoreFunction).

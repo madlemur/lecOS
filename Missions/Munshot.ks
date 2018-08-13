@@ -115,8 +115,9 @@
         },
         "Deorbit", {
             parameter mission.
-            nav_landing["setTarget"](list(-2.75, 11.5)).
-            mission["addData"]("landingTarget", nav_landing["getTarget"](), true).
+            local targetLatLn is list(-2.75, 11.5).
+            nav_landing["setTarget"](targetLatLn).
+            mission["addData"]("landingTarget", targetLatLn, true).
             nav_landing["setLandingNode"](8000).
             wait 1.
             maneuver["orientCraft"]().

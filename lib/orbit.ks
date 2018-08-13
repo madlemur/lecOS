@@ -15,7 +15,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
     	local Rad is -body_pos.
     	local SMA_ship is ship:orbit:semimajoraxis.
     	local LAN_des is DesiredOrbit["LAN"].
-      local LAN_rot is ANGLEAXIS(-LAN_des, ship:up:vector).
+        local LAN_rot is ANGLEAXIS(-LAN_des, ship:up:vector).
     	local LAN_VEC is (solarprimevector * SMA_ship) * LAN_rot.
     	local Inc_Rotate is ANGLEAXIS(-1 * DesiredOrbit["INC"], LAN_VEC).
     	local Inc_Normal is Inc_Rotate * (V(0,-1,0):direction).
@@ -39,7 +39,8 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
     	local LAN_node is SetNode_BurnVector(time:seconds + LAN_eta,New_Vel_at_LAN).
         add LAN_node.
-        if LAN_node:burnvector:mag < 0.5 {
+        wait 0.
+        if LAN_node:burnvector:mag < 0.1 {
     	    remove LAN_node.
     	}
 
@@ -142,6 +143,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
     	local APO_node is SetNode_BurnVector(AoP_timeat,V_aop_new_vec).
         add APO_node.
+        wait 0.
         if APO_node:burnvector:mag < 0.1 {
     	    remove APO_node.
         }
@@ -163,6 +165,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
         if delta_v_node > 0.1 {
     	    add node(New_Apo_time,0,0,delta_v_node).
+            wait 0.
     	}
     }
 
@@ -196,6 +199,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
         local altitudeAt is (positionat(ship, t) - body:position):mag.
         set vecHorizontal:mag to sqrt(body:MU/altitudeAt).
         add SetNode_BurnVector(t, vecHorizontal).
+        wait 0.
     }
 
     function matchOrbit {
@@ -260,7 +264,7 @@ pout("LEC ORBIT v%VERSION_NUMBER%").
 
         	pout("Running Change_AoP_PerApo").
         	Change_AoP_PerApo(DesiredOrbit).
-        	if HASNODE { wait 0. return false. }
+        	if HASNODE { return false. }
         }
         // Current orbit matches desired orbit, within tolerances
         return true.
