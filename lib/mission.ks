@@ -175,9 +175,9 @@ pout("LEC MISSION v%VERSION_NUMBER%").
     }
     function getData {
         PARAMETER name.
-        if data:haskey[name] {
+        if data:haskey(name) {
             return data[name].
-        } else if mission_data:haskey[name] {
+        } else if mission_data:haskey(name) {
             return mission_data[name].
         }
         return false. // for lack of a better value...

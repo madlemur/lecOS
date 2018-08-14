@@ -131,13 +131,13 @@
                 pout("Land at site").
                 mission["next"]().
             }
-        }
+        },
         "ExecuteLanding", {
             parameter mission.
             if NOT nav_landing["hasTarget"]() {
                 nav_landing["setTarget"](mission["getData"]("landingTarget")).
             }
-            if nav_landing["spotLand"]().
+            if nav_landing["spotLand"]() {
                 mission["endMission"]().
             }
         }

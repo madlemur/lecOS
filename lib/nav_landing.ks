@@ -55,7 +55,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
     	//clearscreen.
 
     	local EA_ship is 2*ARCTAN((TAN(theta_ship/2))/sqrt((1+ecc)/(1-ecc))).
-    	local MA_ship is EA_ship*constant:pi/180 - e*SIN(EA_ship).
+    	local MA_ship is EA_ship*constant:pi/180 - ecc*SIN(EA_ship).
     	local EA_test is 2*ARCTAN((TAN(theta_test/2))/sqrt((1+ecc)/(1-ecc))).
     	local MA_test is EA_test*constant:pi/180 - ecc*SIN(EA_test).
     	local n is sqrt(GM/(a)^3).
@@ -147,14 +147,14 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         local long_offset is 360*(peri_time)/ship:body:rotationperiod.
         local peri_ltlng_pre is ship:body:GEOPOSITIONOF(peri_pos).
         local peri_ltlng is LATLNG(peri_ltlng_pre:LAT, peri_ltlng_pre:LNG + long_offset).
-        local long_diff is target_ltlng:LNG - peri_ltlng:LNG.
+        local long_diff is tgtLoc:LNG - peri_ltlng:LNG.
 
         local period_diff is 1/ship:orbit:period - 1/ship:body:rotationperiod.
         local long_fix is (long_diff/360)/period_diff.
 
         set time_test to time_test + long_fix.
         remove nextnode.
-        set landing_vec to Set_Landing_Orbit_vec(target_ltlng:LAT,landing_peri,time_test).
+        set landing_vec to Set_Landing_Orbit_vec(tgtLoc:LAT,landing_peri,time_test).
         Vec_To_Node(landing_vec,time_test).
         return true.
     }
@@ -304,7 +304,7 @@ pout("LEC NAV_LANDING v%VERSION_NUMBER%").
         local true_alt to altitude - ship:geoposition:terrainheight.
 
         local V_vec to UP:vector.
-        local H_vec to VCRS(R,VCRS(V_surf,Ra)):normalized.
+        local H_vec to VCRS(Ra,VCRS(V_surf,Ra)):normalized.
         local S_vec to -1*VCRS(V_surf,Ra):normalized.
 
 

@@ -44,8 +44,8 @@ pout("LEC MUN v%VERSION_NUMBER%").
       local result is 0.
       if transnode:orbit:hasNextPatch {
         set result to transnode:orbit:nextPatch:periapsis.
-        if abs(transnode:orbit:netPatch:inclination) > 90 {
-          set result to transnode:orbit:netPatch:body:soiradius - 1/result to transnode:orbit:nextPatch:periapsis.
+        if abs(transnode:orbit:nextPatch:inclination) > 90 {
+          set result to transnode:orbit:nextPatch:body:soiradius - 1/result.
         }
       } else {
         set result to distanceToMunAtApoapsis(transnode).
