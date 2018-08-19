@@ -8,6 +8,7 @@
     local nav_landing is import("lib/nav_landing.ks", false).
     local times is import("lib/time.ks", false).
     local orbiter is import("lib/orbit.ks", false).
+    local hillclimb is import("lib/hillclimb.ks", false).
     local mission_list is list (
         "PreLaunch", {
             parameter mission.
@@ -51,6 +52,45 @@
         "Circularize", {
             parameter mission.
             if maneuver["nodeComplete"]() {
+                pout("Plot transfer", false).
+                mission["next"]().
+            }
+        },
+        "PlotTransfer",
+        {
+            parameter mission.
+            // First guess at time to initiate burn
+            local xfer is TIME:SECONDS + 30.
+            // Wild guess at transit time
+            local transit is (constant:pi * ship:orbit:semimajoraxis) / sqrt(body:mu/((mun:orbit:semimajoraxis + ship:orbit:semiminoraxis) / 2)).
+            // Set up initial values
+            local pStart is positionAt(ship, xfer) - body:position.
+            local pEnd is positionAt(mun, xfer+transit) - body:position.
+            local vStart is velocityAt(ship, xfer).
+            local vEnd is velocityAt(mun, xfer+transit).
+            lambert["lambert_problem"](pStart, pEnd, transit).
+            local solves is lambert["lambert_solution"]().
+            pout(solves[0]:length + " initial solutions found").
+            local dvStart is (solves[0][0] - vStart).
+            local dvEnd is (solves[1][0] - vEnd).
+            local deltaV is dvStart:mag + dvEnd:mag.
+            pout("Solution 0: " + deltaV + "m/s total").
+            pout("Optimizing...").
+            local firstOpt is hillclimb["improve"](list(xfer, transit), list(100, 1000), {
+                parameter data.
+                local pStart is positionAt(ship, data[0]) - body:position.
+                local pEnd is positionAt(mun, data[0]+data[1]) - body:position.
+                local vStart is velocityAt(ship, data[0]).
+                local vEnd is velocityAt(mun, data[0]+data[1]).
+                lambert["lambert_problem"](pStart, pEnd, data[1]).
+                local solves is lambert["lambert_solution"]().
+                local dvStart is (solves[0][0] - vStart).
+                local dvEnd is (solves[1][0] - vEnd).
+                local deltaV is dvStart:mag + dvEnd:mag.
+                return data[0] + 2*data[1] + 100*deltaV.
+            }).
+            pout("First optimization: " + firstOpt).
+
                 domun["setMunTransfer"](20000).
                 wait 0.
                 maneuver["orientCraft"]().
