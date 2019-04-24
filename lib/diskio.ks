@@ -2,7 +2,7 @@
 pout("LEC DISKIO v%VERSION_NUMBER%").
 {
 
-    local self is lexicon(
+    local s is lex(
         "init", init@,
         "findFile", findFile@,
         "findSpace", findSpace@,
@@ -46,7 +46,7 @@ pout("LEC DISKIO v%VERSION_NUMBER%").
         LOCAL afs IS VOLUME(0):OPEN(fn):SIZE.
         IF loud { pout("Copying from: " + afp + " (" + afs + " bytes)"). }
 
-        SET lfp TO self["findSpace"](fn, afs).
+        SET lfp TO findSpace(fn, afs).
         if lfp = "" {
             pout("ERROR: unable to copy file " + fn).
             RETURN "".
@@ -59,22 +59,22 @@ pout("LEC DISKIO v%VERSION_NUMBER%").
 
     FUNCTION delFile {
         PARAMETER fn.
-        LOCAL lfp IS self["findFile"](fn).
+        LOCAL lfp IS findFile(fn).
         IF not (lfp = "") { DELETEPATH(lfp). }
     }
 
     FUNCTION runFile {
-      PARAMETER fp, args is "", delafter is FALSE.
+      PARAMETER fp, args is "", del is FALSE.
       if exists(fp) {
         if args = ""
           RUNPATH(fp).
         else
           RUNPATH(fp, args).
-        if delafter {
-            self["delFile"](fp).
+        if del {
+            delFile(fp).
         }
       }
     }
 
-    export(self).
+    export(s).
 }

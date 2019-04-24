@@ -4,7 +4,10 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   local self is lex (
       "orientCraft", orientCraft@,
       "isOriented", isOriented@,
-      "nodeComplete", nodeComplete@
+      "nodeComplete", nodeComplete@,
+      "circThrott", circThrott@,
+      "circDeltaV", circDeltaV@,
+      "isCircularized", isCircularized@
   ).
   local t is 0.
   local targetV is 0.
@@ -21,10 +24,53 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
   local node_bestFacing is .5.   // ~.5 degree error (1 degree cone)
   local node_okFacing   is 2.   // ~2 degrees error (4 degree cone)
 
+  function findVect() {
+      parameter mnv.
+      if mnv:isType("Scalar") {
+          if Career():CANMAKENODES AND HASNODE {
+              local mnvnode is nextnode.
+              return mnvnode:deltav.
+          } 
+      } else if mnv:isType("Vector") {
+          return mnv.
+      } else if mnv:isType("Lexicon") {
+          if mnv:HASKEY("deltav") {
+              return(mnv["deltav"]).
+          }
+          if mnv:HASKEY("prograde") AND
+             mnv:HASKEY("normal") AND
+             mnv:HASKEY("radial") AND 
+             mnv:HASKEY("utime") {
+                 // Use maths to build positionat and velocityat in order to
+                 // properly build deltav
+          }
+      }
+      return false.
+  }
+  
+  function findEta {
+      parameter mnv.
+      if mnv:isType("Scalar") {
+          if Career():CANMAKENODES AND HASNODE {
+              local mnvnode is nextnode.
+              return mnvnode:eta.
+          }
+      } else if mnv:isType("Lexicon") {
+          if mnv:HASKEY("eta") {
+              return(mnv["eta"]).
+          }
+          if mnv:HASKEY("utime") {
+             return(mnv["utime"] - TIME:SECONDS).
+          }
+      }
+      return 0.
+  }
+
   function orientCraft {
-      parameter mnvNode is 0.
-      if HASNODE { set mnvNode to nextnode. } else { return false. }
-      set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
+      parameter mnv is 0.
+      local mnvVect is findVect(mnv).
+      if not mnvVect return mnvVect.
+      set steervec to LOOKDIRUP(mnvVect,facing:topvector).
       set thrott to 0.
       lock steering to steervec.
       lock throttle to thrott.
@@ -32,39 +78,44 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
     }
 
   function isOriented {
-    parameter mnvNode is 0.
-    if NOT mnvNode:isType("ManeuverNode") { if HASNODE { set mnvNode to nextnode. } else { return true. } }
-    local BurnTime is staging["burnTimeForDv"](mnvNode:deltav:mag)/2.
-    if utilIsShipFacing(mnvNode:burnvector,node_bestFacing,0.01) or // Good aim.
-        ((mnvNode:eta <= BurnTime and // Fair aim, and
-          utilIsShipFacing(mnvNode:burnvector,node_okFacing,2)) or // we're running late!
+    parameter mnv is 0.
+    local mnvVect is findVect(mnv).
+    local mnvEta is findEta(mnv).
+    if not mnvVect return mnvVect.
+    local BurnTime is staging["burnTimeForDv"](mnvVect:mag)/2.
+    if utilIsShipFacing(mnvVect,node_bestFacing,0.01) or // Good aim.
+        ((mnvEta <= BurnTime and // Fair aim, and
+          utilIsShipFacing(mnvVect,node_okFacing,2)) or // we're running late!
         // ship:angularvel:mag < 0.001 or // This fat tub isn't turning on it's own, so sure, we're facing as good as it's gonna get.
-        mnvNode:eta/BurnTime < 0.25) { // The time has come, just go for it, and hope it works out...
+        mnvEta/BurnTime < 0.25) { // The time has come, just go for it, and hope it works out...
             return true.
         }
     return false.
   }
 
   function nodeComplete {
-    parameter mnvNode is 0.
+    parameter mnv is 0.
     parameter useWarp is true.
+    local mnvVect is findVect(mnv).
+    local mnvEta is findEta(mnv).
+    if not mnvVect return mnvVect.
     if HASNODE { set mnvNode to nextnode. } else { pout("orbit:transition = " + orbit:transition). unlock all. set thrott to 0. return true. }
-    set steervec to LOOKDIRUP(mnvNode:burnvector,facing:topvector).
+    set steervec to LOOKDIRUP(mnvVect,facing:topvector).
     wait 0.1.
-    if not isOriented(mnvNode) {
+    if not isOriented(mnv) {
         set thrott to 0.
         return false.
     }
-    local DeltaV is mnvNode:deltav:mag.
+    local DeltaV is mnvVect:mag.
     local BurnTime is staging["burnTimeForDv"](DeltaV)/2.
     local LowBurn is staging["burnTimeForDv"](0.5).
     local Simmer is LowBurn/2.
-    if useWarp and (mnvNode:eta > (BurnTime + 15)) {
+    if useWarp and (mnvEta > (BurnTime + 15)) {
       wait 1.
-        __["warpUntil"](time:seconds + mnvNode:eta - BurnTime - 10).
+        __["warpUntil"](time:seconds + mnvEta - BurnTime - 10).
     }
 
-    if BurnTime < mnvNode:eta {
+    if BurnTime < mnvEta {
       print "waiting to burn" at (0,0).
         set thrott to 0.
         return false.
@@ -75,7 +126,9 @@ pout("LEC MANEUVER v%VERSION_NUMBER%").
       print "burn completed                    " at (0,0).
         set thrott to 0.
         unlock all.
-        remove mnvNode.
+        if mnv:isType("ManeuverNode") {
+            remove mnv.
+        }
         return true.
     }
     if DeltaV < 0.5 {

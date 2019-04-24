@@ -6,7 +6,8 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     "calcLaunchDetails", calcLaunchDetails@,
     "getPitch", getPitch@,
     "getBearing", getBearing@,
-    "getThrottle", getThrottle@
+    "getThrottle", getThrottle@,
+    "isCountdownDone", isCountdownDone@
   ).
   local p_alt is 250.
   local c_alt is BODY:ATM:HEIGHT * 0.9.
@@ -16,6 +17,9 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
   local LCH_AN is 0.
   local LCH_APO is 0.
   local HALF_LAUNCH is 145.
+  local LCH_AZ = 0.
+  local LCH_TIME = TIME:SECONDS + 15.
+  local countdown = 10.
   local timeout is 90.
   local staging is import("lib/staging.ks", false).
   local times is import("lib/time.ks", false).
@@ -57,7 +61,17 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     ELSE IF az < 0 { set l_details to noPassLaunchDetails(l_alt,l_inc,l_lan). }
     ELSE { set l_details to launchDetails(l_alt,l_inc,l_lan,az). }
 
-    RETURN l_details.
+    SET LCH_AZ to l_details[0].
+    SET LCH_TIME to l_details[1].
+    SET countdown to 10.
+  }
+  
+  FUNCTION isCountdownDone {
+      if FLOOR(LCH_TIME - TIME:SECONDS) < countdown {
+          SET countdown to countdown - 1.
+          phud("T-minus " + countdown + " seconds").
+      }
+      return(countdown = 0).
   }
 
   FUNCTION azimuth {
@@ -109,18 +123,18 @@ pout("LEC LAUNCH v%VERSION_NUMBER%").
     PARAMETER ap,i,lan,az.
 
     LOCAL peta IS 0.
-    SET az TO launchAzimuth(BODY,az,ap).
+    SET laz TO launchAzimuth(BODY,az,ap).
     LOCAL etan IS etaToOrbitalPlane(TRUE,BODY,lan,i,LATITUDE,LONGITUDE).
     LOCAL etdn IS etaToOrbitalPlane(FALSE,BODY,lan,i,LATITUDE,LONGITUDE).
 
     IF etdn < 0 AND etan < 0 { RETURN noPassLaunchDetails(ap,i,lan). }
     ELSE IF (etdn < etan OR etan < HALF_LAUNCH) AND etdn >= HALF_LAUNCH {
       SET peta TO etdn.
-      SET az TO __["mAngle"](180 - az).
+      SET laz TO __["mAngle"](180 - laz).
     } ELSE IF etan >= HALF_LAUNCH { SET peta TO etan. }
     ELSE { SET peta TO etan + BODY:ROTATIONPERIOD. }
     LOCAL launch_time IS TIME:SECONDS + peta - HALF_LAUNCH.
-    RETURN LIST(az,launch_time).
+    RETURN LIST(laz,launch_time).
   }
 
   FUNCTION latIncOk {
