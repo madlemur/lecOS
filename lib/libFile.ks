@@ -1,7 +1,7 @@
 @lazyGlobal off.
 // global delegates for file functionality
 runOncePath("./libIO.ks").
-
+print("Initializing file management...").
 {
 
     LOCAL VOLUME_NAMES IS LIST().
@@ -64,8 +64,10 @@ runOncePath("./libIO.ks").
     IF loud { printOut("Copying from: " + afp + " (" + afs + " bytes)"). }
 
     SET lfp TO findSpace(fn, afs).
-    COPYPATH(afp,lfp).
-    IF loud { printOut("Copied to: " + lfp). }
+    if lfp <> "" {
+      COPYPATH(afp,lfp).
+      IF loud { printOut("Copied to: " + lfp). }
+    }
     RETURN lfp.
   }.
 

@@ -17,4 +17,4 @@ runOncePath("lib/libIO.ks").
 runOncePath("lib/libFile.ks").
 runOncePath("lib/libLoader.ks").
 
-print "lecOS loaded".
+printOut("lecOS loaded").

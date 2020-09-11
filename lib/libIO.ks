@@ -1,5 +1,5 @@
 @lazyGlobal off.
-
+print("Initializing I/O...").
 {
     local L_F is "".
 

@@ -1,6 +1,6 @@
 @lazyGlobal off.
 // libLoader - Initializes shared library strucures and global functions
-
+print("Initializing library management...").
 {
   LOCAL s is stack().
   LOCAL d is lex().
